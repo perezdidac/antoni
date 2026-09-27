@@ -66,34 +66,6 @@ function interpolateArc(cx, cy, rx, ry, startAngleDeg, endAngleDeg, clockwise = 
 // Left margin: x = 90, Right margin: x = 310, Center: x = 200
 
 export const LETTERS = {
-  P: {
-    symbol: 'P',
-    category: 'letter',
-    phonic: 'P is for Puffing Train and Popcorn!',
-    word: 'PUFF',
-    rewardTracks: 2,
-    strokes: [
-      {
-        id: 1,
-        name: 'Down the stick',
-        hint: 'Start at the top and slide down!',
-        points: interpolateLine({ x: 130, y: 70 }, { x: 130, y: 340 }, 7)
-      },
-      {
-        id: 2,
-        name: 'Around the curve',
-        hint: 'Start at the top, curve around to the middle!',
-        points: interpolateCubicBezier(
-          { x: 130, y: 70 },
-          { x: 300, y: 70 },
-          { x: 300, y: 210 },
-          { x: 130, y: 210 },
-          32
-        )
-      }
-    ]
-  },
-
   A: {
     symbol: 'A',
     category: 'letter',
@@ -509,6 +481,34 @@ export const LETTERS = {
         name: 'All the way round',
         hint: 'Start top, go around counter-clockwise in a circle!',
         points: interpolateArc(200, 205, 95, 135, -90, 270, false, 42)
+      }
+    ]
+  },
+
+  P: {
+    symbol: 'P',
+    category: 'letter',
+    phonic: 'P is for Puffing Train and Popcorn!',
+    word: 'PUFF',
+    rewardTracks: 2,
+    strokes: [
+      {
+        id: 1,
+        name: 'Down the stick',
+        hint: 'Start at the top and slide down!',
+        points: interpolateLine({ x: 130, y: 70 }, { x: 130, y: 340 }, 7)
+      },
+      {
+        id: 2,
+        name: 'Around the curve',
+        hint: 'Start at the top, curve around to the middle!',
+        points: interpolateCubicBezier(
+          { x: 130, y: 70 },
+          { x: 300, y: 70 },
+          { x: 300, y: 210 },
+          { x: 130, y: 210 },
+          32
+        )
       }
     ]
   },

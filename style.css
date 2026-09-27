@@ -294,6 +294,7 @@ body {
 
 .item-ribbon {
   display: flex;
+  flex-wrap: nowrap;
   gap: 8px;
   overflow-x: auto;
   padding: 6px 12px 12px;
@@ -312,8 +313,11 @@ body {
 
 .ribbon-item-btn {
   flex: 0 0 auto;
-  width: 50px;
+  min-width: 50px;
+  width: auto;
+  padding: 0 12px;
   height: 50px;
+  white-space: nowrap;
   border-radius: 14px;
   border: 2.5px solid #E2E8F0;
   background: #FFFFFF;
@@ -494,14 +498,17 @@ body {
 .stroke-indicator-bar {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 12px;
   margin-top: 10px;
+  white-space: nowrap;
 }
 
 .stroke-label {
   font-weight: 800;
   color: #718096;
   font-size: 0.95rem;
+  white-space: nowrap;
 }
 
 .stroke-dots {
@@ -557,6 +564,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  white-space: nowrap;
   box-shadow: var(--btn-shadow);
   transition: all 0.15s ease;
 }
@@ -804,6 +812,7 @@ body {
   font-size: 0.85rem;
   font-weight: 800;
   color: #4A5568;
+  white-space: nowrap;
 }
 
 .tool-badge {

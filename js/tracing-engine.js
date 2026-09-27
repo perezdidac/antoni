@@ -124,8 +124,8 @@ export class TracingEngine {
       const distToTarget = Math.hypot(normPos.x - targetWaypoint.x, normPos.y - targetWaypoint.y);
       const distToStart = Math.hypot(normPos.x - startPoint.x, normPos.y - startPoint.y);
 
-      // Generous touch radius for kindergarteners (at least 52px)
-      const allowedRadius = Math.max(52, (this.options.hitRadius || 45) / this.scaleFactor);
+      // Generous touch radius for kindergarteners (at least 55px)
+      const allowedRadius = Math.max(55, 50 / this.scaleFactor);
 
       // If touching near the active stroke's start or current progress waypoint: START TRACING!
       if (distToTarget <= allowedRadius || (progress.maxReachedIndex === 0 && distToStart <= allowedRadius * 1.6)) {
@@ -159,18 +159,36 @@ export class TracingEngine {
     // Pointer Move / Touch Move
     const handleMove = (e) => {
       e.preventDefault();
-      if (!this.isTracing || !this.currentItem) return;
+      if (!this.currentItem) return;
 
       const pos = getPos(e);
       const normPos = this.fromCanvasCoords(pos);
+
+      if (this.activeStrokeIndex >= this.currentItem.strokes.length) return;
 
       const currentStroke = this.currentItem.strokes[this.activeStrokeIndex];
       const progress = this.strokeProgress[this.activeStrokeIndex];
       const points = currentStroke.points;
       const currentIndex = progress.maxReachedIndex;
+      const targetWaypoint = points[currentIndex] || points[0];
+      const startPoint = points[0];
+      const allowedRadius = Math.max(55, 50 / this.scaleFactor);
 
-      // Look ahead up to lookahead points in the forward direction
-      const maxLook = Math.min(points.length - 1, currentIndex + this.options.lookahead);
+      // If not tracing yet, check if finger dragged into the start circle or waypoint!
+      if (!this.isTracing) {
+        const distToStart = Math.hypot(normPos.x - startPoint.x, normPos.y - startPoint.y);
+        const distToTarget = Math.hypot(normPos.x - targetWaypoint.x, normPos.y - targetWaypoint.y);
+        if (distToTarget <= allowedRadius || (progress.maxReachedIndex === 0 && distToStart <= allowedRadius * 1.6)) {
+          this.isTracing = true;
+          progress.drawnPoints.push({ ...normPos });
+          this.spawnSparkles(pos.x, pos.y, '#FFD700', 5);
+          sound.playTap();
+        }
+        return;
+      }
+
+      // Look ahead generously along the stroke path
+      const maxLook = Math.min(points.length - 1, currentIndex + 14);
       let bestIndex = -1;
       let minDistance = Infinity;
 
@@ -182,17 +200,15 @@ export class TracingEngine {
         }
       }
 
-      const hitTolerance = (this.options.hitRadius + 12) / this.scaleFactor;
+      const hitTolerance = Math.max(65, 55 / this.scaleFactor);
 
       // If finger is moving forward along the path
       if (bestIndex > currentIndex && minDistance <= hitTolerance) {
-        // Advanced forward!
-        const stepDiff = bestIndex - currentIndex;
         progress.maxReachedIndex = bestIndex;
         progress.drawnPoints.push({ ...normPos });
 
         // Sound chime for progress
-        if (bestIndex % 5 === 0 || bestIndex === points.length - 1) {
+        if (bestIndex % 4 === 0 || bestIndex === points.length - 1) {
           sound.playTraceChime(bestIndex);
           this.spawnSparkles(pos.x, pos.y, '#FF6B6B', 3);
         }
@@ -205,19 +221,16 @@ export class TracingEngine {
           this.handleStrokeFinished();
         }
       } else if (minDistance > hitTolerance * 1.8) {
-        // Child drifted too far off track
         this.triggerNudge('Stay on the track!');
-      } else {
-        // Child might be moving backward or staying in place
-        // Check if moving backwards
-        if (currentIndex > 3) {
-          const prevPt = points[currentIndex - 3];
-          const distPrev = Math.hypot(normPos.x - prevPt.x, normPos.y - prevPt.y);
-          if (distPrev < 25) {
-            // Trying to drag backward!
-            this.triggerNudge('Follow the train arrow! ➡️');
-            sound.playGentleNudge();
-          }
+      } else if (currentIndex > 3) {
+        const prevPt = points[currentIndex - 3];
+        const distPrev = Math.hypot(normPos.x - prevPt.x, normPos.y - prevPt.y);
+        if (distPrev < 25) {
+          this.triggerNudge('Follow the train arrow! ➡️');
+          sound.playGentleNudge();
+        }
+      }
+    };
         }
       }
     };
@@ -568,8 +581,7 @@ export class TracingEngine {
     ctx.lineWidth = 2;
 
     // Locomotive body
-    ctx.beginPath();
-    ctx.roundRect(-12 * this.scaleFactor, -8 * this.scaleFactor, 24 * this.scaleFactor, 16 * this.scaleFactor, 4);
+    this.roundRect(ctx, -12 * this.scaleFactor, -8 * this.scaleFactor, 24 * this.scaleFactor, 16 * this.scaleFactor, 4);
     ctx.fill();
     ctx.stroke();
 

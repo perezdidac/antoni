@@ -820,8 +820,8 @@
         const distToTarget = Math.hypot(normPos.x - targetWaypoint.x, normPos.y - targetWaypoint.y);
         const distToStart = Math.hypot(normPos.x - startPoint.x, normPos.y - startPoint.y);
 
-        // Generous touch radius for kindergarteners (at least 52px)
-        const allowedRadius = Math.max(52, (this.options.hitRadius || 45) / this.scaleFactor);
+        // Generous touch radius for kindergarteners (at least 55px)
+        const allowedRadius = Math.max(55, 50 / this.scaleFactor);
 
         // If touching near the active stroke's start or current progress waypoint: START TRACING!
         if (distToTarget <= allowedRadius || (progress.maxReachedIndex === 0 && distToStart <= allowedRadius * 1.6)) {
@@ -854,17 +854,36 @@
 
       const handleMove = (e) => {
         e.preventDefault();
-        if (!this.isTracing || !this.currentItem) return;
+        if (!this.currentItem) return;
 
         const pos = getPos(e);
         const normPos = this.fromCanvasCoords(pos);
+
+        if (this.activeStrokeIndex >= this.currentItem.strokes.length) return;
 
         const currentStroke = this.currentItem.strokes[this.activeStrokeIndex];
         const progress = this.strokeProgress[this.activeStrokeIndex];
         const points = currentStroke.points;
         const currentIndex = progress.maxReachedIndex;
+        const targetWaypoint = points[currentIndex] || points[0];
+        const startPoint = points[0];
+        const allowedRadius = Math.max(55, 50 / this.scaleFactor);
 
-        const maxLook = Math.min(points.length - 1, currentIndex + this.options.lookahead);
+        // If not tracing yet, check if finger dragged into the start circle or waypoint!
+        if (!this.isTracing) {
+          const distToStart = Math.hypot(normPos.x - startPoint.x, normPos.y - startPoint.y);
+          const distToTarget = Math.hypot(normPos.x - targetWaypoint.x, normPos.y - targetWaypoint.y);
+          if (distToTarget <= allowedRadius || (progress.maxReachedIndex === 0 && distToStart <= allowedRadius * 1.6)) {
+            this.isTracing = true;
+            progress.drawnPoints.push({ ...normPos });
+            this.spawnSparkles(pos.x, pos.y, '#FFD700', 5);
+            sound.playTap();
+          }
+          return;
+        }
+
+        // Look ahead generously along the stroke path
+        const maxLook = Math.min(points.length - 1, currentIndex + 14);
         let bestIndex = -1;
         let minDistance = Infinity;
 
@@ -876,13 +895,13 @@
           }
         }
 
-        const hitTolerance = (this.options.hitRadius + 12) / this.scaleFactor;
+        const hitTolerance = Math.max(65, 55 / this.scaleFactor);
 
         if (bestIndex > currentIndex && minDistance <= hitTolerance) {
           progress.maxReachedIndex = bestIndex;
           progress.drawnPoints.push({ ...normPos });
 
-          if (bestIndex % 5 === 0 || bestIndex === points.length - 1) {
+          if (bestIndex % 4 === 0 || bestIndex === points.length - 1) {
             sound.playTraceChime(bestIndex);
             this.spawnSparkles(pos.x, pos.y, '#FF6B6B', 3);
           }
@@ -1212,8 +1231,7 @@
       ctx.strokeStyle = '#EE5A24';
       ctx.lineWidth = 2;
 
-      ctx.beginPath();
-      ctx.roundRect(-12 * this.scaleFactor, -8 * this.scaleFactor, 24 * this.scaleFactor, 16 * this.scaleFactor, 4);
+      this.roundRect(ctx, -12 * this.scaleFactor, -8 * this.scaleFactor, 24 * this.scaleFactor, 16 * this.scaleFactor, 4);
       ctx.fill();
       ctx.stroke();
 
@@ -1277,7 +1295,7 @@
       ctx.arcTo(x + w, y, x + w, y + h, r);
       ctx.arcTo(x + w, y + h, x, y + h, r);
       ctx.arcTo(x, y + h, x, y, r);
-      ctx.arcTo(x, y + x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
       ctx.closePath();
     }
   }
