@@ -291,11 +291,14 @@
       try {
         this.speechSynth.cancel();
         const utter = new SpeechSynthesisUtterance(text);
-        utter.rate = 0.95;
-        utter.pitch = 1.15;
+        utter.rate = 1.0;
+        utter.pitch = 1.0;
+        utter.lang = 'en-US';
 
         const voices = this.speechSynth.getVoices();
-        const preferred = voices.find(v => (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Zira') || v.name.includes('Karen')) && v.lang.startsWith('en'));
+        const preferred = voices.find(v => v.lang === 'en-US' && (v.name.includes('US English') || v.name.includes('Samantha') || v.default)) ||
+                          voices.find(v => v.lang === 'en-US') ||
+                          voices.find(v => v.default && v.lang.startsWith('en'));
         if (preferred) utter.voice = preferred;
 
         this.speechSynth.speak(utter);
@@ -1666,7 +1669,8 @@
       };
 
       const handleMove = (e) => {
-        e.preventDefault();
+        if (!this.isTracing) return;
+        if (e.cancelable) e.preventDefault();
         if (!this.currentItem) return;
 
         const pos = getPos(e);
@@ -1678,22 +1682,6 @@
         const progress = this.strokeProgress[this.activeStrokeIndex];
         const points = currentStroke.points;
         const currentIndex = progress.maxReachedIndex;
-        const targetWaypoint = points[currentIndex] || points[0];
-        const startPoint = points[0];
-        const allowedRadius = Math.max(55, 50 / this.scaleFactor);
-
-        // If not tracing yet, check if finger dragged into the start circle or waypoint!
-        if (!this.isTracing) {
-          const distToStart = Math.hypot(normPos.x - startPoint.x, normPos.y - startPoint.y);
-          const distToTarget = Math.hypot(normPos.x - targetWaypoint.x, normPos.y - targetWaypoint.y);
-          if (distToTarget <= allowedRadius || (progress.maxReachedIndex === 0 && distToStart <= allowedRadius * 1.6)) {
-            this.isTracing = true;
-            progress.drawnPoints.push({ ...normPos });
-            this.spawnSparkles(pos.x, pos.y, '#FFD700', 5);
-            sound.playTap();
-          }
-          return;
-        }
 
         // Look ahead generously along the stroke path
         const maxLook = Math.min(points.length - 1, currentIndex + 14);
@@ -1737,8 +1725,7 @@
         }
       };
 
-      const handleUp = (e) => {
-        e.preventDefault();
+      const handleUp = () => {
         this.isTracing = false;
       };
 
@@ -1748,8 +1735,8 @@
 
       this.canvas.addEventListener('touchstart', handleDown, { passive: false });
       window.addEventListener('touchmove', handleMove, { passive: false });
-      window.addEventListener('touchend', handleUp, { passive: false });
-      window.addEventListener('touchcancel', handleUp, { passive: false });
+      window.addEventListener('touchend', handleUp, { passive: true });
+      window.addEventListener('touchcancel', handleUp, { passive: true });
     }
 
     triggerNudge(message) {
@@ -3157,10 +3144,6 @@
       this.letterTitleEl = document.getElementById('active-letter-title');
       this.letterPhonicEl = document.getElementById('active-letter-phonic');
       this.wordTrainCarriageEl = document.getElementById('word-train-carriages');
-
-      this.rewardModal = document.getElementById('reward-modal');
-      this.rewardTracksCountEl = document.getElementById('reward-tracks-count');
-      this.rewardSpecialEl = document.getElementById('reward-special-text');
     }
 
     initEngines() {
@@ -3257,44 +3240,6 @@
           document.documentElement.requestFullscreen?.().catch(() => {});
         } else {
           document.exitFullscreen?.().catch(() => {});
-        }
-      });
-
-      const dismissReward = () => {
-        sound.playTap();
-        this.rewardModal.classList.add('hidden');
-        this.rewardModal.style.display = 'none';
-      };
-
-      document.getElementById('btn-reward-keep-tracing').addEventListener('click', (e) => {
-        e.stopPropagation();
-        dismissReward();
-        this.nextItem();
-      });
-
-      document.getElementById('btn-reward-go-train').addEventListener('click', (e) => {
-        e.stopPropagation();
-        dismissReward();
-        this.switchTab('train');
-      });
-
-      const closeBtn = document.getElementById('btn-close-reward-modal');
-      if (closeBtn) {
-        closeBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          dismissReward();
-        });
-      }
-
-      this.rewardModal.addEventListener('click', (e) => {
-        if (e.target === this.rewardModal) {
-          dismissReward();
-        }
-      });
-
-      window.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && !this.rewardModal.classList.contains('hidden')) {
-          dismissReward();
         }
       });
 
@@ -3492,30 +3437,21 @@
           setTimeout(() => {
             this.wordLetterIndex++;
             this.loadCurrentItem();
-          }, 800);
+          }, 700);
           return;
         }
-        const reward = rewards.awardTracingReward(wordObj);
-        this.showRewardModal(wordObj, reward);
+        rewards.awardTracingReward(wordObj);
+        sound.playCelebration();
+        setTimeout(() => {
+          this.nextItem();
+        }, 1200);
       } else {
-        const reward = rewards.awardTracingReward(item);
-        this.showRewardModal(item, reward);
+        rewards.awardTracingReward(item);
+        sound.playCelebration();
+        setTimeout(() => {
+          this.nextItem();
+        }, 1200);
       }
-    }
-
-    showRewardModal(item, reward) {
-      sound.playCelebration();
-      this.rewardTracksCountEl.innerText = `+${reward.straight} Straight & +${reward.curve} Curved Tracks`;
-      if (reward.specialUnlock) {
-        this.rewardSpecialEl.innerText = reward.specialUnlock;
-        this.rewardSpecialEl.classList.remove('hidden');
-        this.rewardSpecialEl.style.display = 'block';
-      } else {
-        this.rewardSpecialEl.classList.add('hidden');
-        this.rewardSpecialEl.style.display = 'none';
-      }
-      this.rewardModal.classList.remove('hidden');
-      this.rewardModal.style.display = 'flex';
     }
 
     updateRewardStats(state = rewards.state) {

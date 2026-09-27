@@ -156,9 +156,9 @@ export class TracingEngine {
       }
     };
 
-    // Pointer Move / Touch Move
     const handleMove = (e) => {
-      e.preventDefault();
+      if (!this.isTracing) return;
+      if (e.cancelable) e.preventDefault();
       if (!this.currentItem) return;
 
       const pos = getPos(e);
@@ -170,22 +170,6 @@ export class TracingEngine {
       const progress = this.strokeProgress[this.activeStrokeIndex];
       const points = currentStroke.points;
       const currentIndex = progress.maxReachedIndex;
-      const targetWaypoint = points[currentIndex] || points[0];
-      const startPoint = points[0];
-      const allowedRadius = Math.max(55, 50 / this.scaleFactor);
-
-      // If not tracing yet, check if finger dragged into the start circle or waypoint!
-      if (!this.isTracing) {
-        const distToStart = Math.hypot(normPos.x - startPoint.x, normPos.y - startPoint.y);
-        const distToTarget = Math.hypot(normPos.x - targetWaypoint.x, normPos.y - targetWaypoint.y);
-        if (distToTarget <= allowedRadius || (progress.maxReachedIndex === 0 && distToStart <= allowedRadius * 1.6)) {
-          this.isTracing = true;
-          progress.drawnPoints.push({ ...normPos });
-          this.spawnSparkles(pos.x, pos.y, '#FFD700', 5);
-          sound.playTap();
-        }
-        return;
-      }
 
       // Look ahead generously along the stroke path
       const maxLook = Math.min(points.length - 1, currentIndex + 14);
@@ -231,13 +215,9 @@ export class TracingEngine {
         }
       }
     };
-        }
-      }
-    };
 
     // Pointer Up / Touch End
-    const handleUp = (e) => {
-      e.preventDefault();
+    const handleUp = () => {
       this.isTracing = false;
     };
 
@@ -247,8 +227,8 @@ export class TracingEngine {
 
     this.canvas.addEventListener('touchstart', handleDown, { passive: false });
     window.addEventListener('touchmove', handleMove, { passive: false });
-    window.addEventListener('touchend', handleUp, { passive: false });
-    window.addEventListener('touchcancel', handleUp, { passive: false });
+    window.addEventListener('touchend', handleUp, { passive: true });
+    window.addEventListener('touchcancel', handleUp, { passive: true });
   }
 
   triggerNudge(message) {

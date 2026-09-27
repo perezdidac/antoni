@@ -29,6 +29,27 @@
   -webkit-user-select: none;
 }
 
+button,
+.ribbon-item-btn,
+.category-btn,
+.nav-tab-btn,
+.control-btn,
+.math-mode-btn,
+.math-option-btn,
+.train-tool-btn,
+.btn-train-go,
+.btn-whistle-toot,
+.btn-tool-secondary,
+.btn-speak,
+.modal-btn,
+.modal-close-x,
+.cargo-icon,
+.train-card,
+.resource-pill {
+  touch-action: manipulation;
+  cursor: pointer;
+}
+
 body {
   font-family: var(--font-body);
   background: linear-gradient(135deg, #74b9ff 0%, #a29bfe 50%, #81ecec 100%);

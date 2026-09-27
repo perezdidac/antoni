@@ -53,11 +53,6 @@ class App {
     this.letterTitleEl = document.getElementById('active-letter-title');
     this.letterPhonicEl = document.getElementById('active-letter-phonic');
     this.wordTrainCarriageEl = document.getElementById('word-train-carriages');
-
-    // Modals
-    this.rewardModal = document.getElementById('reward-modal');
-    this.rewardTracksCountEl = document.getElementById('reward-tracks-count');
-    this.rewardSpecialEl = document.getElementById('reward-special-text');
   }
 
   initEngines() {
@@ -177,45 +172,6 @@ class App {
         document.documentElement.requestFullscreen?.().catch(() => {});
       } else {
         document.exitFullscreen?.().catch(() => {});
-      }
-    });
-
-    // Reward Modal Actions
-    const dismissReward = () => {
-      sound.playTap();
-      this.rewardModal.classList.add('hidden');
-      this.rewardModal.style.display = 'none';
-    };
-
-    document.getElementById('btn-reward-keep-tracing').addEventListener('click', (e) => {
-      e.stopPropagation();
-      dismissReward();
-      this.nextItem();
-    });
-
-    document.getElementById('btn-reward-go-train').addEventListener('click', (e) => {
-      e.stopPropagation();
-      dismissReward();
-      this.switchTab('train');
-    });
-
-    const closeBtn = document.getElementById('btn-close-reward-modal');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        dismissReward();
-      });
-    }
-
-    this.rewardModal.addEventListener('click', (e) => {
-      if (e.target === this.rewardModal) {
-        dismissReward();
-      }
-    });
-
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !this.rewardModal.classList.contains('hidden')) {
-        dismissReward();
       }
     });
 
@@ -414,37 +370,25 @@ class App {
     if (this.currentCategory === 'words') {
       const wordObj = WORDS[this.currentItemKey];
       if (this.wordLetterIndex < wordObj.letters.length - 1) {
-        // Next letter in word!
         sound.playStrokeComplete();
         setTimeout(() => {
           this.wordLetterIndex++;
           this.loadCurrentItem();
-        }, 800);
+        }, 700);
         return;
       }
-      // Entire word completed!
-      const reward = rewards.awardTracingReward(wordObj, true);
-      this.showRewardModal(wordObj, reward);
+      rewards.awardTracingReward(wordObj, true);
+      sound.playCelebration();
+      setTimeout(() => {
+        this.nextItem();
+      }, 1200);
     } else {
-      // Single letter/number completed!
-      const reward = rewards.awardTracingReward(item, false);
-      this.showRewardModal(item, reward);
+      rewards.awardTracingReward(item, false);
+      sound.playCelebration();
+      setTimeout(() => {
+        this.nextItem();
+      }, 1200);
     }
-  }
-
-  showRewardModal(item, reward) {
-    sound.playCelebration();
-    this.rewardTracksCountEl.innerText = `+${reward.straight} Straight & +${reward.curve} Curved Tracks`;
-    if (reward.specialUnlock) {
-      this.rewardSpecialEl.innerText = reward.specialUnlock;
-      this.rewardSpecialEl.classList.remove('hidden');
-      this.rewardSpecialEl.style.display = 'block';
-    } else {
-      this.rewardSpecialEl.classList.add('hidden');
-      this.rewardSpecialEl.style.display = 'none';
-    }
-    this.rewardModal.classList.remove('hidden');
-    this.rewardModal.style.display = 'flex';
   }
 
   updateRewardStats(state = rewards.state) {

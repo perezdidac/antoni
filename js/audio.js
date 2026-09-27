@@ -292,18 +292,21 @@ class SoundEngine {
     osc.stop(now + 0.06);
   }
 
-  // Text-To-Speech with warm, cheerful child-friendly voice
+  // Text-To-Speech with standard, clear voice
   speak(text) {
     if (!this.voiceEnabled || !this.speechSynth) return;
     try {
       this.speechSynth.cancel(); // Stop any pending speech
       const utter = new SpeechSynthesisUtterance(text);
-      utter.rate = 0.95; // Slightly slower, very clear for kindergarteners
-      utter.pitch = 1.15; // Cheerful, warm tone
+      utter.rate = 1.0;
+      utter.pitch = 1.0;
+      utter.lang = 'en-US';
 
-      // Try finding an English friendly voice
+      // Pick standard US English voice or default
       const voices = this.speechSynth.getVoices();
-      const preferred = voices.find(v => (v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Samantha') || v.name.includes('Zira') || v.name.includes('Karen')) && v.lang.startsWith('en'));
+      const preferred = voices.find(v => v.lang === 'en-US' && (v.name.includes('US English') || v.name.includes('Samantha') || v.default)) ||
+                        voices.find(v => v.lang === 'en-US') ||
+                        voices.find(v => v.default && v.lang.startsWith('en'));
       if (preferred) utter.voice = preferred;
 
       this.speechSynth.speak(utter);
