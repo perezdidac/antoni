@@ -1,5 +1,5 @@
 // app.js - Main Application Coordinator for Antoni's Train Express
-import { LETTERS, NUMBERS, WORDS } from './strokes-data.js';
+import { LETTERS, LOWERCASE_LETTERS, ALL_LETTERS, NUMBERS, WORDS } from './strokes-data.js';
 import { TracingEngine } from './tracing-engine.js';
 import { TrainWorld } from './train-sim.js';
 import { MathGame } from './math-game.js';
@@ -8,7 +8,7 @@ import { rewards } from './rewards.js';
 
 class App {
   constructor() {
-    this.currentCategory = 'letters'; // 'letters', 'numbers', 'words'
+    this.currentCategory = 'letters'; // 'letters', 'lowercase', 'numbers', 'words'
     this.currentItemKey = 'A'; // Start with A
     this.wordLetterIndex = 0; // For multi-letter words
 
@@ -42,6 +42,7 @@ class App {
 
     // Category buttons
     this.catLettersBtn = document.getElementById('cat-letters');
+    this.catLowercaseBtn = document.getElementById('cat-lowercase');
     this.catNumbersBtn = document.getElementById('cat-numbers');
     this.catWordsBtn = document.getElementById('cat-words');
 
@@ -107,6 +108,9 @@ class App {
 
     // Category Selectors
     this.catLettersBtn.addEventListener('click', () => this.setCategory('letters'));
+    if (this.catLowercaseBtn) {
+      this.catLowercaseBtn.addEventListener('click', () => this.setCategory('lowercase'));
+    }
     this.catNumbersBtn.addEventListener('click', () => this.setCategory('numbers'));
     this.catWordsBtn.addEventListener('click', () => this.setCategory('words'));
 
@@ -260,15 +264,18 @@ class App {
     sound.playTap();
     this.currentCategory = cat;
     this.catLettersBtn.classList.toggle('active', cat === 'letters');
+    if (this.catLowercaseBtn) this.catLowercaseBtn.classList.toggle('active', cat === 'lowercase');
     this.catNumbersBtn.classList.toggle('active', cat === 'numbers');
     this.catWordsBtn.classList.toggle('active', cat === 'words');
 
     if (cat === 'letters') {
       this.currentItemKey = 'A'; // Start with A
+    } else if (cat === 'lowercase') {
+      this.currentItemKey = 'a';
     } else if (cat === 'numbers') {
-      this.currentItemKey = '1';
+      this.currentItemKey = '0';
     } else if (cat === 'words') {
-      this.currentItemKey = 'ANTONI';
+      this.currentItemKey = 'Antoni';
       this.wordLetterIndex = 0;
     }
 
@@ -280,12 +287,18 @@ class App {
     this.itemSelectorEl.innerHTML = '';
     let items = {};
     if (this.currentCategory === 'letters') items = LETTERS;
+    else if (this.currentCategory === 'lowercase') items = LOWERCASE_LETTERS;
     else if (this.currentCategory === 'numbers') items = NUMBERS;
     else if (this.currentCategory === 'words') items = WORDS;
 
+    const isWordsMode = this.currentCategory === 'words';
+    this.itemSelectorEl.classList.toggle('words-mode', isWordsMode);
+
     Object.keys(items).forEach(key => {
       const btn = document.createElement('button');
-      btn.className = `ribbon-item-btn ${key === this.currentItemKey ? 'active' : ''}`;
+      const activeClass = key === this.currentItemKey ? 'active' : '';
+      const wordClass = isWordsMode ? 'word-item-btn' : '';
+      btn.className = `ribbon-item-btn ${wordClass} ${activeClass}`.trim();
       btn.innerText = key;
       btn.addEventListener('click', () => {
         sound.playTap();
@@ -306,12 +319,15 @@ class App {
 
   getCurrentItemData() {
     if (this.currentCategory === 'letters') return LETTERS[this.currentItemKey];
+    if (this.currentCategory === 'lowercase') return LOWERCASE_LETTERS[this.currentItemKey];
     if (this.currentCategory === 'numbers') return NUMBERS[this.currentItemKey];
     if (this.currentCategory === 'words') {
       const wordObj = WORDS[this.currentItemKey];
+      if (!wordObj) return null;
       const activeChar = wordObj.letters[this.wordLetterIndex];
+      const charData = ALL_LETTERS[activeChar] || LETTERS[activeChar.toUpperCase()] || LOWERCASE_LETTERS[activeChar.toLowerCase()];
       return {
-        ...LETTERS[activeChar],
+        ...charData,
         wordParent: wordObj,
         charIndex: this.wordLetterIndex
       };
@@ -357,6 +373,7 @@ class App {
     sound.playTap();
     let keys = [];
     if (this.currentCategory === 'letters') keys = Object.keys(LETTERS);
+    else if (this.currentCategory === 'lowercase') keys = Object.keys(LOWERCASE_LETTERS);
     else if (this.currentCategory === 'numbers') keys = Object.keys(NUMBERS);
     else if (this.currentCategory === 'words') keys = Object.keys(WORDS);
 
@@ -371,6 +388,7 @@ class App {
     sound.playTap();
     let keys = [];
     if (this.currentCategory === 'letters') keys = Object.keys(LETTERS);
+    else if (this.currentCategory === 'lowercase') keys = Object.keys(LOWERCASE_LETTERS);
     else if (this.currentCategory === 'numbers') keys = Object.keys(NUMBERS);
     else if (this.currentCategory === 'words') keys = Object.keys(WORDS);
 
@@ -482,7 +500,7 @@ class App {
       <div class="train-card ${state.selectedTrain === 'golden_express' ? 'selected' : !state.unlockedTrains.includes('golden_express') ? 'locked' : ''}" data-train="golden_express">
         <div class="train-preview-icon">✨🚂✨</div>
         <h4>Golden Conductor Express</h4>
-        <span class="status-tag">${state.unlockedTrains.includes('golden_express') ? 'Unlocked!' : 'Trace Letter P to Unlock'}</span>
+        <span class="status-tag">${state.unlockedTrains.includes('golden_express') ? 'Unlocked!' : 'Trace Letter A or Antoni to Unlock'}</span>
       </div>
     `;
 

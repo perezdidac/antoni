@@ -783,8 +783,545 @@ export const LETTERS = {
   }
 };
 
-// NUMBERS 0 - 9
+// LOWERCASE LETTERS (a - z)
+export const LOWERCASE_LETTERS = {
+  a: {
+    symbol: 'a',
+    category: 'letter_lower',
+    phonic: 'Small a is for apple and all aboard!',
+    word: 'all aboard',
+    rewardTracks: 2,
+    strokes: [
+      {
+        id: 1,
+        name: 'Round tummy',
+        hint: 'Curve around counter-clockwise!',
+        points: interpolateCubicBezier({ x: 260, y: 235 }, { x: 140, y: 190 }, { x: 130, y: 350 }, { x: 260, y: 310 }, 30)
+      },
+      {
+        id: 2,
+        name: 'Stick down',
+        hint: 'Slide down the right side!',
+        points: interpolateLine({ x: 260, y: 205 }, { x: 260, y: 340 }, 8)
+      }
+    ]
+  },
+  b: {
+    symbol: 'b',
+    category: 'letter_lower',
+    phonic: 'Small b is for bell and boxcar!',
+    word: 'boxcar',
+    rewardTracks: 2,
+    strokes: [
+      {
+        id: 1,
+        name: 'Tall stick down',
+        hint: 'Start top headline, slide all the way down!',
+        points: interpolateLine({ x: 140, y: 70 }, { x: 140, y: 340 }, 8)
+      },
+      {
+        id: 2,
+        name: 'Belly curve',
+        hint: 'Start at the middle line, curve around to the bottom!',
+        points: interpolateCubicBezier({ x: 140, y: 205 }, { x: 280, y: 205 }, { x: 280, y: 340 }, { x: 140, y: 340 }, 28)
+      }
+    ]
+  },
+  c: {
+    symbol: 'c',
+    category: 'letter_lower',
+    phonic: 'Small c is for caboose!',
+    word: 'caboose',
+    rewardTracks: 2,
+    strokes: [
+      {
+        id: 1,
+        name: 'Curve around',
+        hint: 'Start top right, curve back and down to the bottom!',
+        points: interpolateCubicBezier({ x: 265, y: 235 }, { x: 140, y: 190 }, { x: 135, y: 350 }, { x: 265, y: 310 }, 30)
+      }
+    ]
+  },
+  d: {
+    symbol: 'd',
+    category: 'letter_lower',
+    phonic: 'Small d is for diesel!',
+    word: 'diesel',
+    rewardTracks: 2,
+    strokes: [
+      {
+        id: 1,
+        name: 'Round belly',
+        hint: 'Curve around counter-clockwise on the left!',
+        points: interpolateCubicBezier({ x: 260, y: 235 }, { x: 140, y: 190 }, { x: 130, y: 350 }, { x: 260, y: 310 }, 30)
+      },
+      {
+        id: 2,
+        name: 'Tall stick down',
+        hint: 'Start top headline, slide down the right side!',
+        points: interpolateLine({ x: 260, y: 70 }, { x: 260, y: 340 }, 8)
+      }
+    ]
+  },
+  e: {
+    symbol: 'e',
+    category: 'letter_lower',
+    phonic: 'Small e is for engine express!',
+    word: 'engine',
+    rewardTracks: 2,
+    strokes: [
+      {
+        id: 1,
+        name: 'Across and loop around',
+        hint: 'Slide across the middle, then loop up and around!',
+        points: [
+          ...interpolateLine({ x: 140, y: 275 }, { x: 265, y: 275 }, 8),
+          ...interpolateCubicBezier({ x: 265, y: 275 }, { x: 265, y: 200 }, { x: 135, y: 200 }, { x: 135, y: 285 }, 18),
+          ...interpolateCubicBezier({ x: 135, y: 285 }, { x: 135, y: 345 }, { x: 230, y: 345 }, { x: 265, y: 315 }, 18)
+        ]
+      }
+    ]
+  },
+  f: {
+    symbol: 'f',
+    category: 'letter_lower',
+    phonic: 'Small f is for freight train!',
+    word: 'freight',
+    rewardTracks: 2,
+    strokes: [
+      {
+        id: 1,
+        name: 'Top hook and down',
+        hint: 'Curve around the hook and slide straight down!',
+        points: [
+          ...interpolateCubicBezier({ x: 250, y: 95 }, { x: 230, y: 70 }, { x: 190, y: 70 }, { x: 190, y: 120 }, 14),
+          ...interpolateLine({ x: 190, y: 120 }, { x: 190, y: 340 }, 8)
+        ]
+      },
+      {
+        id: 2,
+        name: 'Crossbar',
+        hint: 'Slide across the middle line!',
+        points: interpolateLine({ x: 145, y: 205 }, { x: 245, y: 205 }, 8)
+      }
+    ]
+  },
+  g: {
+    symbol: 'g',
+    category: 'letter_lower',
+    phonic: 'Small g is for green signal!',
+    word: 'green',
+    rewardTracks: 2,
+    strokes: [
+      {
+        id: 1,
+        name: 'Circle around',
+        hint: 'Make a circle counter-clockwise!',
+        points: interpolateCubicBezier({ x: 260, y: 235 }, { x: 140, y: 190 }, { x: 130, y: 350 }, { x: 260, y: 310 }, 30)
+      },
+      {
+        id: 2,
+        name: 'Tail hook down',
+        hint: 'Slide down past the ground line and hook left!',
+        points: [
+          ...interpolateLine({ x: 260, y: 205 }, { x: 260, y: 355 }, 8),
+          ...interpolateCubicBezier({ x: 260, y: 355 }, { x: 260, y: 395 }, { x: 160, y: 395 }, { x: 150, y: 360 }, 16)
+        ]
+      }
+    ]
+  },
+  h: {
+    symbol: 'h',
+    category: 'letter_lower',
+    phonic: 'Small h is for honking horn!',
+    word: 'horn',
+    rewardTracks: 2,
+    strokes: [
+      {
+        id: 1,
+        name: 'Tall stick down',
+        hint: 'Start top headline, slide down to baseline!',
+        points: interpolateLine({ x: 140, y: 70 }, { x: 140, y: 340 }, 8)
+      },
+      {
+        id: 2,
+        name: 'Tunnel arch',
+        hint: 'Arch up to the middle line and down to the ground!',
+        points: interpolateCubicBezier({ x: 140, y: 250 }, { x: 160, y: 205 }, { x: 260, y: 205 }, { x: 260, y: 340 }, 24)
+      }
+    ]
+  },
+  i: {
+    symbol: 'i',
+    category: 'letter_lower',
+    phonic: 'Small i is for iron rails!',
+    word: 'iron',
+    rewardTracks: 2,
+    strokes: [
+      {
+        id: 1,
+        name: 'Short stick down',
+        hint: 'Slide down from midline to baseline!',
+        points: interpolateLine({ x: 200, y: 205 }, { x: 200, y: 340 }, 8)
+      },
+      {
+        id: 2,
+        name: 'Dot on top',
+        hint: 'Tap a dot right above!',
+        points: interpolateLine({ x: 200, y: 135 }, { x: 200, y: 150 }, 4)
+      }
+    ]
+  },
+  j: {
+    symbol: 'j',
+    category: 'letter_lower',
+    phonic: 'Small j is for railway junction!',
+    word: 'junction',
+    rewardTracks: 2,
+    strokes: [
+      {
+        id: 1,
+        name: 'Hook down',
+        hint: 'Slide down past the ground line and hook left!',
+        points: [
+          ...interpolateLine({ x: 220, y: 205 }, { x: 220, y: 355 }, 8),
+          ...interpolateCubicBezier({ x: 220, y: 355 }, { x: 220, y: 395 }, { x: 140, y: 395 }, { x: 130, y: 360 }, 16)
+        ]
+      },
+      {
+        id: 2,
+        name: 'Dot on top',
+        hint: 'Tap a dot right above!',
+        points: interpolateLine({ x: 220, y: 135 }, { x: 220, y: 150 }, 4)
+      }
+    ]
+  },
+  k: {
+    symbol: 'k',
+    category: 'letter_lower',
+    phonic: 'Small k is for kindergarten conductor!',
+    word: 'kindergarten',
+    rewardTracks: 3,
+    strokes: [
+      {
+        id: 1,
+        name: 'Tall stick down',
+        hint: 'Slide down from top headline to baseline!',
+        points: interpolateLine({ x: 140, y: 70 }, { x: 140, y: 340 }, 8)
+      },
+      {
+        id: 2,
+        name: 'Slant in',
+        hint: 'Slide in from the right to the stick!',
+        points: interpolateLine({ x: 260, y: 205 }, { x: 145, y: 280 }, 8)
+      },
+      {
+        id: 3,
+        name: 'Kick down',
+        hint: 'Kick down to the bottom right!',
+        points: interpolateLine({ x: 145, y: 280 }, { x: 265, y: 340 }, 8)
+      }
+    ]
+  },
+  l: {
+    symbol: 'l',
+    category: 'letter_lower',
+    phonic: 'Small l is for locomotive!',
+    word: 'locomotive',
+    rewardTracks: 2,
+    strokes: [
+      {
+        id: 1,
+        name: 'Tall straight line',
+        hint: 'Slide straight down from top to bottom!',
+        points: interpolateLine({ x: 200, y: 70 }, { x: 200, y: 340 }, 8)
+      }
+    ]
+  },
+  m: {
+    symbol: 'm',
+    category: 'letter_lower',
+    phonic: 'Small m is for mountain train!',
+    word: 'mountain',
+    rewardTracks: 3,
+    strokes: [
+      {
+        id: 1,
+        name: 'Short stick down',
+        hint: 'Slide straight down!',
+        points: interpolateLine({ x: 120, y: 205 }, { x: 120, y: 340 }, 8)
+      },
+      {
+        id: 2,
+        name: 'First arch',
+        hint: 'Arch over midline and down to the ground!',
+        points: interpolateCubicBezier({ x: 120, y: 245 }, { x: 135, y: 205 }, { x: 200, y: 205 }, { x: 200, y: 340 }, 20)
+      },
+      {
+        id: 3,
+        name: 'Second arch',
+        hint: 'Arch over midline and down again!',
+        points: interpolateCubicBezier({ x: 200, y: 245 }, { x: 215, y: 205 }, { x: 280, y: 205 }, { x: 280, y: 340 }, 20)
+      }
+    ]
+  },
+  n: {
+    symbol: 'n',
+    category: 'letter_lower',
+    phonic: 'Small n is for night train!',
+    word: 'night',
+    rewardTracks: 2,
+    strokes: [
+      {
+        id: 1,
+        name: 'Short stick down',
+        hint: 'Slide straight down!',
+        points: interpolateLine({ x: 140, y: 205 }, { x: 140, y: 340 }, 8)
+      },
+      {
+        id: 2,
+        name: 'Tunnel arch',
+        hint: 'Arch over midline and down to the ground!',
+        points: interpolateCubicBezier({ x: 140, y: 250 }, { x: 160, y: 205 }, { x: 260, y: 205 }, { x: 260, y: 340 }, 24)
+      }
+    ]
+  },
+  o: {
+    symbol: 'o',
+    category: 'letter_lower',
+    phonic: 'Small o is for oval loop!',
+    word: 'oval',
+    rewardTracks: 2,
+    strokes: [
+      {
+        id: 1,
+        name: 'Circle around',
+        hint: 'Circle counter-clockwise between midline and baseline!',
+        points: interpolateArc(200, 272, 68, 68, -90, 270, false, 36)
+      }
+    ]
+  },
+  p: {
+    symbol: 'p',
+    category: 'letter_lower',
+    phonic: 'Small p is for puffing steam!',
+    word: 'puff',
+    rewardTracks: 2,
+    strokes: [
+      {
+        id: 1,
+        name: 'Stem down past ground',
+        hint: 'Start midline, slide down past baseline!',
+        points: interpolateLine({ x: 140, y: 205 }, { x: 140, y: 390 }, 8)
+      },
+      {
+        id: 2,
+        name: 'Bubble curve',
+        hint: 'Curve around the right side to the ground!',
+        points: interpolateCubicBezier({ x: 140, y: 205 }, { x: 270, y: 205 }, { x: 270, y: 340 }, { x: 140, y: 340 }, 28)
+      }
+    ]
+  },
+  q: {
+    symbol: 'q',
+    category: 'letter_lower',
+    phonic: 'Small q is for quick train!',
+    word: 'quick',
+    rewardTracks: 2,
+    strokes: [
+      {
+        id: 1,
+        name: 'Circle around',
+        hint: 'Curve around counter-clockwise on the left!',
+        points: interpolateCubicBezier({ x: 260, y: 235 }, { x: 140, y: 190 }, { x: 130, y: 350 }, { x: 260, y: 310 }, 30)
+      },
+      {
+        id: 2,
+        name: 'Stem down with flick',
+        hint: 'Slide down past baseline with a little flick!',
+        points: [
+          ...interpolateLine({ x: 260, y: 205 }, { x: 260, y: 390 }, 8),
+          ...interpolateLine({ x: 260, y: 390 }, { x: 285, y: 365 }, 6)
+        ]
+      }
+    ]
+  },
+  r: {
+    symbol: 'r',
+    category: 'letter_lower',
+    phonic: 'Small r is for railroad tracks!',
+    word: 'rails',
+    rewardTracks: 2,
+    strokes: [
+      {
+        id: 1,
+        name: 'Short stick down',
+        hint: 'Slide straight down!',
+        points: interpolateLine({ x: 150, y: 205 }, { x: 150, y: 340 }, 8)
+      },
+      {
+        id: 2,
+        name: 'Branch right',
+        hint: 'Arch up and curve right like a tree branch!',
+        points: interpolateCubicBezier({ x: 150, y: 250 }, { x: 170, y: 205 }, { x: 235, y: 205 }, { x: 255, y: 225 }, 18)
+      }
+    ]
+  },
+  s: {
+    symbol: 's',
+    category: 'letter_lower',
+    phonic: 'Small s is for steam whistle!',
+    word: 'steam',
+    rewardTracks: 2,
+    strokes: [
+      {
+        id: 1,
+        name: 'Snake curve',
+        hint: 'Curve left, swing across, and curve right!',
+        points: [
+          ...interpolateCubicBezier({ x: 255, y: 235 }, { x: 165, y: 195 }, { x: 140, y: 255 }, { x: 200, y: 272 }, 18),
+          ...interpolateCubicBezier({ x: 200, y: 272 }, { x: 265, y: 290 }, { x: 235, y: 345 }, { x: 145, y: 325 }, 18)
+        ]
+      }
+    ]
+  },
+  t: {
+    symbol: 't',
+    category: 'letter_lower',
+    phonic: 'Small t is for train track!',
+    word: 'train',
+    rewardTracks: 2,
+    strokes: [
+      {
+        id: 1,
+        name: 'Down with a turn',
+        hint: 'Slide down from above midline and curve right!',
+        points: [
+          ...interpolateLine({ x: 200, y: 100 }, { x: 200, y: 315 }, 8),
+          ...interpolateCubicBezier({ x: 200, y: 315 }, { x: 200, y: 340 }, { x: 235, y: 340 }, { x: 245, y: 325 }, 12)
+        ]
+      },
+      {
+        id: 2,
+        name: 'Crossbar across',
+        hint: 'Slide across the middle line!',
+        points: interpolateLine({ x: 150, y: 205 }, { x: 250, y: 205 }, 8)
+      }
+    ]
+  },
+  u: {
+    symbol: 'u',
+    category: 'letter_lower',
+    phonic: 'Small u is for under the bridge!',
+    word: 'under',
+    rewardTracks: 2,
+    strokes: [
+      {
+        id: 1,
+        name: 'Cup down and up',
+        hint: 'Slide down, curve along the ground, and swoop up!',
+        points: [
+          ...interpolateLine({ x: 140, y: 205 }, { x: 140, y: 285 }, 8),
+          ...interpolateCubicBezier({ x: 140, y: 285 }, { x: 140, y: 345 }, { x: 260, y: 345 }, { x: 260, y: 285 }, 18),
+          ...interpolateLine({ x: 260, y: 285 }, { x: 260, y: 205 }, 8)
+        ]
+      },
+      {
+        id: 2,
+        name: 'Down stick',
+        hint: 'Slide straight down the right side!',
+        points: interpolateLine({ x: 260, y: 205 }, { x: 260, y: 340 }, 8)
+      }
+    ]
+  },
+  v: {
+    symbol: 'v',
+    category: 'letter_lower',
+    phonic: 'Small v is for valley express!',
+    word: 'valley',
+    rewardTracks: 2,
+    strokes: [
+      {
+        id: 1,
+        name: 'Slant down',
+        hint: 'Slide down to the bottom point!',
+        points: interpolateLine({ x: 135, y: 205 }, { x: 200, y: 340 }, 8)
+      },
+      {
+        id: 2,
+        name: 'Slant up',
+        hint: 'Slide back up to the top right!',
+        points: interpolateLine({ x: 200, y: 340 }, { x: 265, y: 205 }, 8)
+      }
+    ]
+  },
+  w: {
+    symbol: 'w',
+    category: 'letter_lower',
+    phonic: 'Small w is for whistle toot toot!',
+    word: 'whistle',
+    rewardTracks: 3,
+    strokes: [
+      { id: 1, name: 'First down', hint: 'Slide down left!', points: interpolateLine({ x: 110, y: 205 }, { x: 145, y: 340 }, 8) },
+      { id: 2, name: 'Up to middle', hint: 'Slide up to the middle line!', points: interpolateLine({ x: 145, y: 340 }, { x: 195, y: 245 }, 8) },
+      { id: 3, name: 'Down right', hint: 'Slide down again!', points: interpolateLine({ x: 195, y: 245 }, { x: 245, y: 340 }, 8) },
+      { id: 4, name: 'Up to finish', hint: 'Slide up to finish!', points: interpolateLine({ x: 245, y: 340 }, { x: 280, y: 205 }, 8) }
+    ]
+  },
+  x: {
+    symbol: 'x',
+    category: 'letter_lower',
+    phonic: 'Small x is for crossing tracks!',
+    word: 'crossing',
+    rewardTracks: 2,
+    strokes: [
+      { id: 1, name: 'Slant down right', hint: 'Slide diagonally down right!', points: interpolateLine({ x: 145, y: 205 }, { x: 255, y: 340 }, 8) },
+      { id: 2, name: 'Cross down left', hint: 'Cross diagonally down left!', points: interpolateLine({ x: 255, y: 205 }, { x: 145, y: 340 }, 8) }
+    ]
+  },
+  y: {
+    symbol: 'y',
+    category: 'letter_lower',
+    phonic: 'Small y is for yellow yard!',
+    word: 'yard',
+    rewardTracks: 2,
+    strokes: [
+      { id: 1, name: 'Slant to middle', hint: 'Slide down right to the center!', points: interpolateLine({ x: 135, y: 205 }, { x: 200, y: 280 }, 8) },
+      { id: 2, name: 'Long tail down left', hint: 'Slide down left past the baseline!', points: interpolateLine({ x: 265, y: 205 }, { x: 135, y: 390 }, 8) }
+    ]
+  },
+  z: {
+    symbol: 'z',
+    category: 'letter_lower',
+    phonic: 'Small z is for zig-zag!',
+    word: 'zig-zag',
+    rewardTracks: 3,
+    strokes: [
+      { id: 1, name: 'Across midline', hint: 'Slide across the middle line!', points: interpolateLine({ x: 145, y: 205 }, { x: 255, y: 205 }, 8) },
+      { id: 2, name: 'Slant down', hint: 'Slide down diagonally to the bottom left!', points: interpolateLine({ x: 255, y: 205 }, { x: 145, y: 340 }, 8) },
+      { id: 3, name: 'Across baseline', hint: 'Slide across the bottom line!', points: interpolateLine({ x: 145, y: 340 }, { x: 255, y: 340 }, 8) }
+    ]
+  }
+};
+
+// Combined dictionary for resolving any character (uppercase or lowercase)
+export const ALL_LETTERS = {
+  ...LETTERS,
+  ...LOWERCASE_LETTERS
+};
+
+// NUMBERS 0 - 10
 export const NUMBERS = {
+  '0': {
+    symbol: '0',
+    category: 'number',
+    phonic: 'Zero! Round like a train wheel!',
+    word: 'ZERO',
+    rewardTracks: 2,
+    strokes: [
+      { id: 1, name: 'Round and round', hint: 'Start top, circle counter-clockwise all the way!', points: interpolateArc(200, 205, 80, 135, -90, 270, false, 40) }
+    ]
+  },
   '1': {
     symbol: '1',
     category: 'number',
@@ -792,15 +1329,9 @@ export const NUMBERS = {
     word: 'ONE',
     rewardTracks: 2,
     strokes: [
-      {
-        id: 1,
-        name: 'Straight down',
-        hint: 'Start at the top, slide straight down!',
-        points: interpolateLine({ x: 200, y: 70 }, { x: 200, y: 340 }, 7)
-      }
+      { id: 1, name: 'Straight down', hint: 'Start at the top, slide straight down!', points: interpolateLine({ x: 200, y: 70 }, { x: 200, y: 340 }, 7) }
     ]
   },
-
   '2': {
     symbol: '2',
     category: 'number',
@@ -828,7 +1359,6 @@ export const NUMBERS = {
       }
     ]
   },
-
   '3': {
     symbol: '3',
     category: 'number',
@@ -862,7 +1392,6 @@ export const NUMBERS = {
       }
     ]
   },
-
   '4': {
     symbol: '4',
     category: 'number',
@@ -887,7 +1416,6 @@ export const NUMBERS = {
       }
     ]
   },
-
   '5': {
     symbol: '5',
     category: 'number',
@@ -918,7 +1446,6 @@ export const NUMBERS = {
       }
     ]
   },
-
   '6': {
     symbol: '6',
     category: 'number',
@@ -943,7 +1470,6 @@ export const NUMBERS = {
       }
     ]
   },
-
   '7': {
     symbol: '7',
     category: 'number',
@@ -962,7 +1488,6 @@ export const NUMBERS = {
       }
     ]
   },
-
   '8': {
     symbol: '8',
     category: 'number',
@@ -975,39 +1500,14 @@ export const NUMBERS = {
         name: 'Figure 8 track',
         hint: 'Make an S down, then loop back up!',
         points: [
-          ...interpolateCubicBezier(
-            { x: 200, y: 70 },
-            { x: 130, y: 70 },
-            { x: 130, y: 200 },
-            { x: 200, y: 200 },
-            18
-          ),
-          ...interpolateCubicBezier(
-            { x: 200, y: 200 },
-            { x: 270, y: 200 },
-            { x: 270, y: 340 },
-            { x: 200, y: 340 },
-            18
-          ),
-          ...interpolateCubicBezier(
-            { x: 200, y: 340 },
-            { x: 130, y: 340 },
-            { x: 130, y: 200 },
-            { x: 200, y: 200 },
-            18
-          ),
-          ...interpolateCubicBezier(
-            { x: 200, y: 200 },
-            { x: 270, y: 200 },
-            { x: 270, y: 70 },
-            { x: 200, y: 70 },
-            18
-          )
+          ...interpolateCubicBezier({ x: 200, y: 70 }, { x: 130, y: 70 }, { x: 130, y: 200 }, { x: 200, y: 200 }, 18),
+          ...interpolateCubicBezier({ x: 200, y: 200 }, { x: 270, y: 200 }, { x: 270, y: 340 }, { x: 200, y: 340 }, 18),
+          ...interpolateCubicBezier({ x: 200, y: 340 }, { x: 130, y: 340 }, { x: 130, y: 200 }, { x: 200, y: 200 }, 18),
+          ...interpolateCubicBezier({ x: 200, y: 200 }, { x: 270, y: 200 }, { x: 270, y: 70 }, { x: 200, y: 70 }, 18)
         ]
       }
     ]
   },
-
   '9': {
     symbol: '9',
     category: 'number',
@@ -1026,64 +1526,59 @@ export const NUMBERS = {
       }
     ]
   },
-
-  '0': {
-    symbol: '0',
+  '10': {
+    symbol: '10',
     category: 'number',
-    phonic: 'Zero! Round like a train wheel!',
-    word: 'ZERO',
-    rewardTracks: 2,
+    phonic: 'Number 10! Ten giant train wagons rolling on the tracks!',
+    word: 'TEN',
+    rewardTracks: 3,
     strokes: [
-      {
-        id: 1,
-        name: 'Round and round',
-        hint: 'Start top, circle counter-clockwise all the way!',
-        points: interpolateArc(200, 205, 80, 135, -90, 270, false, 40)
-      }
+      { id: 1, name: 'Number one down', hint: 'Slide straight down the number 1!', points: interpolateLine({ x: 135, y: 70 }, { x: 135, y: 340 }, 8) },
+      { id: 2, name: 'Zero oval around', hint: 'Circle around counter-clockwise for 0!', points: interpolateArc(265, 205, 65, 135, -90, 270, false, 40) }
     ]
   }
 };
 
-// WORDS: Sequences of letters for full word tracing
+// WORDS: Requested Family Words (Antoni, Mama, Papa, Didac, Karolina)
 export const WORDS = {
-  ANTONI: {
-    symbol: 'ANTONI',
+  Antoni: {
+    symbol: 'Antoni',
     category: 'word',
     phonic: 'Antoni! The great train engineer!',
-    letters: ['A', 'N', 'T', 'O', 'N', 'I'],
+    letters: ['A', 'n', 't', 'o', 'n', 'i'],
     rewardTracks: 6,
     specialReward: 'Golden Conductor Train'
   },
-  TRAIN: {
-    symbol: 'TRAIN',
+  Mama: {
+    symbol: 'Mama',
     category: 'word',
-    phonic: 'Train! Choo-choo here it comes!',
-    letters: ['T', 'R', 'A', 'I', 'N'],
+    phonic: 'Mama! All aboard the love train with Mama!',
+    letters: ['M', 'a', 'm', 'a'],
+    rewardTracks: 4,
+    specialReward: 'Heart Railway Car'
+  },
+  Papa: {
+    symbol: 'Papa',
+    category: 'word',
+    phonic: 'Papa! Choo-choo fun with Papa!',
+    letters: ['P', 'a', 'p', 'a'],
+    rewardTracks: 4,
+    specialReward: 'Super Locomotive'
+  },
+  Didac: {
+    symbol: 'Didac',
+    category: 'word',
+    phonic: 'Didac! High-speed railway express with Didac!',
+    letters: ['D', 'i', 'd', 'a', 'c'],
     rewardTracks: 5,
-    specialReward: 'Rainbow Locomotive'
+    specialReward: 'Bullet Train'
   },
-  CHOO: {
-    symbol: 'CHOO',
+  Karolina: {
+    symbol: 'Karolina',
     category: 'word',
-    phonic: 'Choo! Choo! Blow the whistle!',
-    letters: ['C', 'H', 'O', 'O'],
-    rewardTracks: 4,
-    specialReward: 'Steam Whistle Car'
-  },
-  GO: {
-    symbol: 'GO',
-    category: 'word',
-    phonic: 'Green light means GO!',
-    letters: ['G', 'O'],
-    rewardTracks: 3,
-    specialReward: 'Green Signal Light'
-  },
-  STOP: {
-    symbol: 'STOP',
-    category: 'word',
-    phonic: 'Red light means STOP at the station!',
-    letters: ['S', 'T', 'O', 'P'],
-    rewardTracks: 4,
-    specialReward: 'Grand Station Depot'
+    phonic: 'Karolina! The superstar passenger Karolina!',
+    letters: ['K', 'a', 'r', 'o', 'l', 'i', 'n', 'a'],
+    rewardTracks: 8,
+    specialReward: 'Rainbow Princess Carriage'
   }
 };

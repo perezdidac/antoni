@@ -346,6 +346,36 @@ body {
   transform: scale(1.12);
 }
 
+/* Words Mode: large, comfortable buttons that fit full names */
+.item-ribbon.words-mode {
+  gap: 12px;
+  padding: 8px 16px 14px;
+}
+
+.ribbon-item-btn.word-item-btn {
+  min-width: 120px;
+  height: 52px;
+  padding: 0 22px;
+  font-size: 1.25rem;
+  font-weight: 800;
+  border-radius: 16px;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+}
+
+.ribbon-item-btn.word-item-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary-yellow);
+}
+
+.ribbon-item-btn.word-item-btn.active {
+  background: #FF9F1A;
+  border-color: #EE5A24;
+  color: #FFFFFF;
+  box-shadow: 0 6px 16px rgba(255, 159, 26, 0.4);
+}
+
 /* Tracing Stage */
 .tracing-stage {
   display: flex;
@@ -440,6 +470,8 @@ body {
   font-family: var(--font-heading);
   font-weight: 700;
   transition: all 0.3s ease;
+  flex-shrink: 0;
+  min-width: 42px;
 }
 
 .word-car.current {

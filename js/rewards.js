@@ -76,25 +76,19 @@ class RewardManager {
 
     // Check special unlocks
     let specialUnlock = null;
-    if (item.symbol === 'P' && !this.state.unlockedTrains.includes('golden_express')) {
+    if ((item.symbol === 'P' || item.symbol === 'A' || item.symbol === 'Antoni') && !this.state.unlockedTrains.includes('golden_express')) {
       this.state.unlockedTrains.push('golden_express');
       specialUnlock = '✨ Golden Conductor Train!';
-    } else if (item.symbol === 'ANTONI' && !this.state.unlockedCars.includes('circus_giraffe')) {
-      this.state.unlockedCars.push('circus_giraffe');
-      specialUnlock = '🦒 Circus Giraffe Car!';
-    } else if (item.symbol === 'TRAIN' && !this.state.unlockedCars.includes('circus_lion')) {
-      this.state.unlockedCars.push('circus_lion');
-      specialUnlock = '🦁 Happy Lion Safari Car!';
-    } else if (item.symbol === 'CHOO' && !this.state.unlockedCars.includes('candy_car')) {
-      this.state.unlockedCars.push('candy_car');
-      specialUnlock = '🍭 Sweet Candy Express Car!';
+    } else if (item.specialReward) {
+      specialUnlock = `✨ ${item.specialReward}!`;
     }
 
-    if (item.category === 'letter') {
+    if (item.category === 'letter' || item.category === 'letter_lower') {
       this.state.completedLetters[item.symbol] = (this.state.completedLetters[item.symbol] || 0) + 1;
     } else if (item.category === 'number') {
       this.state.completedNumbers[item.symbol] = (this.state.completedNumbers[item.symbol] || 0) + 1;
     } else if (item.category === 'word') {
+      if (!this.state.completedWords) this.state.completedWords = {};
       this.state.completedWords[item.symbol] = (this.state.completedWords[item.symbol] || 0) + 1;
     }
 
