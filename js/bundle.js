@@ -364,33 +364,6 @@
   }
 
   const LETTERS = {
-    P: {
-      symbol: 'P',
-      category: 'letter',
-      phonic: 'P is for Puffing Train and Popcorn!',
-      word: 'PUFF',
-      rewardTracks: 2,
-      strokes: [
-        {
-          id: 1,
-          name: 'Down the stick',
-          hint: 'Start at the top and slide down!',
-          points: interpolateLine({ x: 130, y: 70 }, { x: 130, y: 340 }, 7)
-        },
-        {
-          id: 2,
-          name: 'Around the curve',
-          hint: 'Start at the top, curve around to the middle!',
-          points: interpolateCubicBezier(
-            { x: 130, y: 70 },
-            { x: 300, y: 70 },
-            { x: 300, y: 210 },
-            { x: 130, y: 210 },
-            32
-          )
-        }
-      ]
-    },
     A: {
       symbol: 'A',
       category: 'letter',
@@ -468,6 +441,33 @@
       rewardTracks: 2,
       strokes: [
         { id: 1, name: 'Circle around', hint: 'Top around counter-clockwise!', points: interpolateArc(200, 205, 95, 135, -90, 270, false, 42) }
+      ]
+    },
+    P: {
+      symbol: 'P',
+      category: 'letter',
+      phonic: 'P is for Puffing Train and Popcorn!',
+      word: 'PUFF',
+      rewardTracks: 2,
+      strokes: [
+        {
+          id: 1,
+          name: 'Down the stick',
+          hint: 'Start at the top and slide down!',
+          points: interpolateLine({ x: 130, y: 70 }, { x: 130, y: 340 }, 7)
+        },
+        {
+          id: 2,
+          name: 'Around the curve',
+          hint: 'Start at the top, curve around to the middle!',
+          points: interpolateCubicBezier(
+            { x: 130, y: 70 },
+            { x: 300, y: 70 },
+            { x: 300, y: 210 },
+            { x: 130, y: 210 },
+            32
+          )
+        }
       ]
     },
     N: {
@@ -815,14 +815,30 @@
         const currentStroke = this.currentItem.strokes[this.activeStrokeIndex];
         const progress = this.strokeProgress[this.activeStrokeIndex];
         const targetWaypoint = currentStroke.points[progress.maxReachedIndex] || currentStroke.points[0];
+        const startPoint = currentStroke.points[0];
 
-        const distToStart = Math.hypot(normPos.x - targetWaypoint.x, normPos.y - targetWaypoint.y);
+        const distToTarget = Math.hypot(normPos.x - targetWaypoint.x, normPos.y - targetWaypoint.y);
+        const distToStart = Math.hypot(normPos.x - startPoint.x, normPos.y - startPoint.y);
 
+        // Generous touch radius for kindergarteners (at least 52px)
+        const allowedRadius = Math.max(52, (this.options.hitRadius || 45) / this.scaleFactor);
+
+        // If touching near the active stroke's start or current progress waypoint: START TRACING!
+        if (distToTarget <= allowedRadius || (progress.maxReachedIndex === 0 && distToStart <= allowedRadius * 1.6)) {
+          this.isTracing = true;
+          progress.drawnPoints.push({ ...normPos });
+          this.spawnSparkles(pos.x, pos.y, '#FFD700', 5);
+          sound.playTap();
+          return;
+        }
+
+        // Only warn about wrong stroke if touching a subsequent stroke whose start is far from active start
         let touchedWrongStroke = false;
         for (let sIdx = this.activeStrokeIndex + 1; sIdx < this.currentItem.strokes.length; sIdx++) {
           const otherStroke = this.currentItem.strokes[sIdx];
           const distOther = Math.hypot(normPos.x - otherStroke.points[0].x, normPos.y - otherStroke.points[0].y);
-          if (distOther < 55) {
+          const distBetweenStarts = Math.hypot(otherStroke.points[0].x - startPoint.x, otherStroke.points[0].y - startPoint.y);
+          if (distBetweenStarts > 45 && distOther < allowedRadius) {
             touchedWrongStroke = true;
             break;
           }
@@ -831,25 +847,8 @@
         if (touchedWrongStroke) {
           this.triggerNudge(`Start at Stroke #${this.activeStrokeIndex + 1}!`);
           sound.playGentleNudge();
-          return;
-        }
-
-        const allowedRadius = this.options.hitRadius / this.scaleFactor;
-        if (distToStart <= allowedRadius) {
-          this.isTracing = true;
-          progress.drawnPoints.push({ ...normPos });
-          this.spawnSparkles(pos.x, pos.y, '#FFD700', 4);
-          sound.playTap();
         } else {
-          const startPoint = currentStroke.points[0];
-          const distFar = Math.hypot(normPos.x - startPoint.x, normPos.y - startPoint.y);
-          if (distFar < allowedRadius * 1.6 && progress.maxReachedIndex === 0) {
-            this.isTracing = true;
-            progress.drawnPoints.push({ ...normPos });
-            this.spawnSparkles(pos.x, pos.y, '#FFD700', 4);
-          } else {
-            this.triggerNudge(`Put your finger on #${this.activeStrokeIndex + 1}!`);
-          }
+          this.triggerNudge(`Put your finger on #${this.activeStrokeIndex + 1}!`);
         }
       };
 
@@ -1152,63 +1151,40 @@
 
     drawStrokeBadgesAndGuides() {
       const ctx = this.ctx;
+      if (!this.currentItem || this.activeStrokeIndex >= this.currentItem.strokes.length) return;
 
-      this.currentItem.strokes.forEach((stroke, idx) => {
-        const isComplete = idx < this.activeStrokeIndex;
-        const isActive = idx === this.activeStrokeIndex;
-        const startPt = this.toCanvasCoords(stroke.points[0]);
+      const currentStroke = this.currentItem.strokes[this.activeStrokeIndex];
+      const startPt = this.toCanvasCoords(currentStroke.points[0]);
 
-        if (isComplete) {
-          ctx.save();
-          ctx.fillStyle = '#2ED573';
-          ctx.beginPath();
-          ctx.arc(startPt.x, startPt.y, 16 * this.scaleFactor, 0, Math.PI * 2);
-          ctx.fill();
+      // Pulsing Start Badge "1", "2", "3" ONLY for the currently active stroke!
+      const pulse = 1 + Math.sin(this.hintPulse * 2.5) * 0.12;
+      const radius = 24 * this.scaleFactor * pulse;
 
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = `bold ${16 * this.scaleFactor}px "Nunito", sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('✓', startPt.x, startPt.y);
-          ctx.restore();
-        } else if (isActive) {
-          const pulse = 1 + Math.sin(this.hintPulse * 2) * 0.12;
-          const radius = 22 * this.scaleFactor * pulse;
+      ctx.save();
+      // Glowing halo
+      ctx.fillStyle = 'rgba(255, 71, 87, 0.28)';
+      ctx.beginPath();
+      ctx.arc(startPt.x, startPt.y, radius * 1.45, 0, Math.PI * 2);
+      ctx.fill();
 
-          ctx.save();
-          ctx.fillStyle = 'rgba(255, 107, 107, 0.25)';
-          ctx.beginPath();
-          ctx.arc(startPt.x, startPt.y, radius * 1.4, 0, Math.PI * 2);
-          ctx.fill();
+      // Main circle badge
+      ctx.fillStyle = '#FF4757';
+      ctx.shadowColor = 'rgba(255, 71, 87, 0.5)';
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(startPt.x, startPt.y, radius, 0, Math.PI * 2);
+      ctx.fill();
 
-          ctx.fillStyle = '#FF4757';
-          ctx.beginPath();
-          ctx.arc(startPt.x, startPt.y, radius, 0, Math.PI * 2);
-          ctx.fill();
+      // Stroke Number (1, 2, 3...)
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `bold ${20 * this.scaleFactor}px "Nunito", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(this.activeStrokeIndex + 1), startPt.x, startPt.y);
+      ctx.restore();
 
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = `bold ${18 * this.scaleFactor}px "Nunito", sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(String(stroke.id || idx + 1), startPt.x, startPt.y);
-          ctx.restore();
-
-          this.drawAnimatedDirectionGuide(stroke);
-        } else {
-          ctx.save();
-          ctx.fillStyle = '#94A3B8';
-          ctx.beginPath();
-          ctx.arc(startPt.x, startPt.y, 14 * this.scaleFactor, 0, Math.PI * 2);
-          ctx.fill();
-
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = `bold ${13 * this.scaleFactor}px "Nunito", sans-serif`;
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(String(stroke.id || idx + 1), startPt.x, startPt.y);
-          ctx.restore();
-        }
-      });
+      // Animated Train / Arrow Gliding along the active stroke to demonstrate direction
+      this.drawAnimatedDirectionGuide(currentStroke);
     }
 
     drawAnimatedDirectionGuide(stroke) {
@@ -2311,7 +2287,7 @@
   class App {
     constructor() {
       this.currentCategory = 'letters';
-      this.currentItemKey = 'P';
+      this.currentItemKey = 'A';
       this.wordLetterIndex = 0;
 
       this.tracingEngine = null;
@@ -2534,7 +2510,7 @@
       this.catNumbersBtn.classList.toggle('active', cat === 'numbers');
       this.catWordsBtn.classList.toggle('active', cat === 'words');
 
-      if (cat === 'letters') this.currentItemKey = 'P';
+      if (cat === 'letters') this.currentItemKey = 'A';
       else if (cat === 'numbers') this.currentItemKey = '1';
       else if (cat === 'words') {
         this.currentItemKey = 'ANTONI';

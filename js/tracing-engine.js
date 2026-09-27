@@ -119,16 +119,30 @@ export class TracingEngine {
       const currentStroke = this.currentItem.strokes[this.activeStrokeIndex];
       const progress = this.strokeProgress[this.activeStrokeIndex];
       const targetWaypoint = currentStroke.points[progress.maxReachedIndex] || currentStroke.points[0];
+      const startPoint = currentStroke.points[0];
 
-      // Distance to the valid next waypoint
-      const distToStart = Math.hypot(normPos.x - targetWaypoint.x, normPos.y - targetWaypoint.y);
+      const distToTarget = Math.hypot(normPos.x - targetWaypoint.x, normPos.y - targetWaypoint.y);
+      const distToStart = Math.hypot(normPos.x - startPoint.x, normPos.y - startPoint.y);
 
-      // Check if child touched subsequent stroke (e.g. stroke 2 instead of stroke 1)
+      // Generous touch radius for kindergarteners (at least 52px)
+      const allowedRadius = Math.max(52, (this.options.hitRadius || 45) / this.scaleFactor);
+
+      // If touching near the active stroke's start or current progress waypoint: START TRACING!
+      if (distToTarget <= allowedRadius || (progress.maxReachedIndex === 0 && distToStart <= allowedRadius * 1.6)) {
+        this.isTracing = true;
+        progress.drawnPoints.push({ ...normPos });
+        this.spawnSparkles(pos.x, pos.y, '#FFD700', 5);
+        sound.playTap();
+        return;
+      }
+
+      // Only warn about wrong stroke if touching a subsequent stroke whose start is far from active start
       let touchedWrongStroke = false;
       for (let sIdx = this.activeStrokeIndex + 1; sIdx < this.currentItem.strokes.length; sIdx++) {
         const otherStroke = this.currentItem.strokes[sIdx];
         const distOther = Math.hypot(normPos.x - otherStroke.points[0].x, normPos.y - otherStroke.points[0].y);
-        if (distOther < 55) {
+        const distBetweenStarts = Math.hypot(otherStroke.points[0].x - startPoint.x, otherStroke.points[0].y - startPoint.y);
+        if (distBetweenStarts > 45 && distOther < allowedRadius) {
           touchedWrongStroke = true;
           break;
         }
@@ -137,28 +151,8 @@ export class TracingEngine {
       if (touchedWrongStroke) {
         this.triggerNudge(`Start at Stroke #${this.activeStrokeIndex + 1}!`);
         sound.playGentleNudge();
-        return;
-      }
-
-      // Check if within acceptable start/resume radius (normalized space: ~50 units)
-      const allowedRadius = this.options.hitRadius / this.scaleFactor;
-      if (distToStart <= allowedRadius) {
-        this.isTracing = true;
-        progress.drawnPoints.push({ ...normPos });
-        this.spawnSparkles(pos.x, pos.y, '#FFD700', 4);
-        sound.playTap();
       } else {
-        // If they touched somewhere far away from the start of the current stroke
-        const startPoint = currentStroke.points[0];
-        const distFar = Math.hypot(normPos.x - startPoint.x, normPos.y - startPoint.y);
-        if (distFar < allowedRadius * 1.6 && progress.maxReachedIndex === 0) {
-          // Close enough to start
-          this.isTracing = true;
-          progress.drawnPoints.push({ ...normPos });
-          this.spawnSparkles(pos.x, pos.y, '#FFD700', 4);
-        } else {
-          this.triggerNudge(`Put your finger on #${this.activeStrokeIndex + 1}!`);
-        }
+        this.triggerNudge(`Put your finger on #${this.activeStrokeIndex + 1}!`);
       }
     };
 
@@ -510,74 +504,40 @@ export class TracingEngine {
 
   drawStrokeBadgesAndGuides() {
     const ctx = this.ctx;
+    if (!this.currentItem || this.activeStrokeIndex >= this.currentItem.strokes.length) return;
 
-    this.currentItem.strokes.forEach((stroke, idx) => {
-      const isComplete = idx < this.activeStrokeIndex;
-      const isActive = idx === this.activeStrokeIndex;
-      const startPt = this.toCanvasCoords(stroke.points[0]);
+    const currentStroke = this.currentItem.strokes[this.activeStrokeIndex];
+    const startPt = this.toCanvasCoords(currentStroke.points[0]);
 
-      if (isComplete) {
-        // Draw Completed Checkmark Badge
-        ctx.save();
-        ctx.fillStyle = '#2ED573';
-        ctx.shadowColor = 'rgba(46, 213, 115, 0.4)';
-        ctx.shadowBlur = 8;
-        ctx.beginPath();
-        ctx.arc(startPt.x, startPt.y, 16 * this.scaleFactor, 0, Math.PI * 2);
-        ctx.fill();
+    // Pulsing Start Badge "1", "2", "3" ONLY for the currently active stroke!
+    const pulse = 1 + Math.sin(this.hintPulse * 2.5) * 0.12;
+    const radius = 24 * this.scaleFactor * pulse;
 
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = `bold ${16 * this.scaleFactor}px "Nunito", sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('✓', startPt.x, startPt.y);
-        ctx.restore();
-      } else if (isActive) {
-        // Pulsing Start Badge "1", "2", "3"
-        const pulse = 1 + Math.sin(this.hintPulse * 2) * 0.12;
-        const radius = 22 * this.scaleFactor * pulse;
+    ctx.save();
+    // Glowing halo
+    ctx.fillStyle = 'rgba(255, 71, 87, 0.28)';
+    ctx.beginPath();
+    ctx.arc(startPt.x, startPt.y, radius * 1.45, 0, Math.PI * 2);
+    ctx.fill();
 
-        ctx.save();
-        // Glowing halo
-        ctx.fillStyle = 'rgba(255, 107, 107, 0.25)';
-        ctx.beginPath();
-        ctx.arc(startPt.x, startPt.y, radius * 1.4, 0, Math.PI * 2);
-        ctx.fill();
+    // Main circle badge
+    ctx.fillStyle = '#FF4757';
+    ctx.shadowColor = 'rgba(255, 71, 87, 0.5)';
+    ctx.shadowBlur = 10;
+    ctx.beginPath();
+    ctx.arc(startPt.x, startPt.y, radius, 0, Math.PI * 2);
+    ctx.fill();
 
-        // Main circle badge
-        ctx.fillStyle = '#FF4757';
-        ctx.shadowColor = 'rgba(255, 71, 87, 0.5)';
-        ctx.shadowBlur = 10;
-        ctx.beginPath();
-        ctx.arc(startPt.x, startPt.y, radius, 0, Math.PI * 2);
-        ctx.fill();
+    // Stroke Number (1, 2, 3...)
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = `bold ${20 * this.scaleFactor}px "Nunito", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(String(this.activeStrokeIndex + 1), startPt.x, startPt.y);
+    ctx.restore();
 
-        // Number
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = `bold ${18 * this.scaleFactor}px "Nunito", sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(String(stroke.id || idx + 1), startPt.x, startPt.y);
-        ctx.restore();
-
-        // Animated Train / Arrow Gliding along the path to show direction!
-        this.drawAnimatedDirectionGuide(stroke);
-      } else {
-        // Future stroke - subtle numbered badge
-        ctx.save();
-        ctx.fillStyle = '#94A3B8';
-        ctx.beginPath();
-        ctx.arc(startPt.x, startPt.y, 14 * this.scaleFactor, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = `bold ${13 * this.scaleFactor}px "Nunito", sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(String(stroke.id || idx + 1), startPt.x, startPt.y);
-        ctx.restore();
-      }
-    });
+    // Animated Train / Arrow Gliding along the active stroke to demonstrate direction
+    this.drawAnimatedDirectionGuide(currentStroke);
   }
 
   drawAnimatedDirectionGuide(stroke) {

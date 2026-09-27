@@ -9,7 +9,7 @@ import { rewards } from './rewards.js';
 class App {
   constructor() {
     this.currentCategory = 'letters'; // 'letters', 'numbers', 'words'
-    this.currentItemKey = 'P'; // Start with P as requested!
+    this.currentItemKey = 'A'; // Start with A
     this.wordLetterIndex = 0; // For multi-letter words
 
     this.tracingEngine = null;
@@ -264,7 +264,7 @@ class App {
     this.catWordsBtn.classList.toggle('active', cat === 'words');
 
     if (cat === 'letters') {
-      this.currentItemKey = 'P'; // Start with P
+      this.currentItemKey = 'A'; // Start with A
     } else if (cat === 'numbers') {
       this.currentItemKey = '1';
     } else if (cat === 'words') {
