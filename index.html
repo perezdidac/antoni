@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Antoni's Train Express - Learn & Build</title>
+  <meta name="description" content="A playful kindergarten stroke tracing and train track building game for Antoni. Learn letters, numbers, and build magical railway worlds!">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app-container">
+    <!-- Top Header -->
+    <header id="main-header">
+      <div class="conductor-profile">
+        <img src="assets/conductor_antoni.jpg" alt="Conductor Antoni" class="conductor-avatar" id="conductor-avatar-img">
+        <div class="conductor-title-group">
+          <h1 class="game-logo">Antoni's Train Express</h1>
+          <span class="sub-greeting">Kindergarten Conductor Adventure 🚂</span>
+        </div>
+      </div>
+
+      <!-- Live Resource Badges -->
+      <div class="header-resources">
+        <div class="resource-pill stars-pill" title="Earned Stars">
+          <span class="pill-icon">⭐</span>
+          <span class="pill-value" id="star-count">5</span>
+        </div>
+        <div class="resource-pill tickets-pill" title="Golden Railway Tickets">
+          <span class="pill-icon">🎫</span>
+          <span class="pill-value" id="ticket-count">1</span>
+        </div>
+        <div class="resource-pill tracks-pill" title="Train Tracks in Inventory">
+          <span class="pill-icon">🛤️</span>
+          <span class="pill-value" id="track-count">24</span>
+        </div>
+      </div>
+
+      <!-- Quick Action Controls -->
+      <div class="header-actions">
+        <button id="btn-toggle-sound" class="btn-icon-label" title="Toggle Sound">🔊 Sound</button>
+        <button id="btn-fullscreen" class="btn-icon" title="Toggle Fullscreen">⛶</button>
+      </div>
+    </header>
+
+    <!-- Main Navigation Bar -->
+    <nav id="nav-tabs">
+      <button id="tab-tracing" class="nav-tab-btn active">
+        <span class="tab-icon">✍️</span>
+        <span class="tab-label">Tracing Express</span>
+      </button>
+      <button id="tab-math" class="nav-tab-btn">
+        <span class="tab-icon">➕</span>
+        <span class="tab-label">Train Math</span>
+      </button>
+      <button id="tab-train" class="nav-tab-btn">
+        <span class="tab-icon">🚂</span>
+        <span class="tab-label">Train World</span>
+      </button>
+      <button id="tab-rewards" class="nav-tab-btn">
+        <span class="tab-icon">🏆</span>
+        <span class="tab-label">Rewards & Garage</span>
+      </button>
+    </nav>
+
+    <!-- Main Game Screens -->
+    <main id="game-viewport">
+
+      <!-- SCREEN 1: TRACING EXPRESS -->
+      <section id="screen-tracing" class="game-screen">
+        <!-- Sub-Navigation Category Buttons -->
+        <div class="category-bar">
+          <button id="cat-letters" class="category-btn active">🔤 Letters (A-Z)</button>
+          <button id="cat-numbers" class="category-btn">🔢 Numbers (0-9)</button>
+          <button id="cat-words" class="category-btn">⭐ Fun Words</button>
+        </div>
+
+        <!-- Horizontal Item Selector Ribbon -->
+        <div class="ribbon-container">
+          <div id="item-selector-ribbon" class="item-ribbon">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Main Tracing Stage -->
+        <div class="tracing-stage">
+          <!-- Active Prompt Banner -->
+          <div class="prompt-banner">
+            <div class="prompt-text-group">
+              <h2 id="active-letter-title" class="active-letter-badge">P</h2>
+              <p id="active-letter-phonic" class="active-phonic-text">P is for Puffing Train and Popcorn!</p>
+            </div>
+            <button id="btn-speak-phonic" class="btn-speak" title="Hear Letter Sound">
+              <span>📢</span> Listen
+            </button>
+          </div>
+
+          <!-- Multi-letter Word Train Carriage (Shown during Word tracing) -->
+          <div id="word-train-carriages" class="word-carriages-area"></div>
+
+          <!-- Tracing Card & Canvas -->
+          <div class="tracing-card">
+            <div class="canvas-wrapper">
+              <canvas id="tracing-canvas" width="420" height="420"></canvas>
+            </div>
+
+            <!-- Stroke Steps Indicator -->
+            <div class="stroke-indicator-bar">
+              <span class="stroke-label">Strokes:</span>
+              <div id="stroke-dots-indicator" class="stroke-dots">
+                <!-- Dots populated by JS -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Tracing Controls -->
+          <div class="tracing-controls">
+            <button id="btn-prev-item" class="control-btn btn-secondary">
+              <span>⬅️</span> Back
+            </button>
+            <button id="btn-retry-trace" class="control-btn btn-warning">
+              <span>🔄</span> Clear
+            </button>
+            <button id="btn-next-item" class="control-btn btn-primary">
+              Next <span>➡️</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREEN 2: TRAIN MATH -->
+      <section id="screen-math" class="game-screen hidden">
+        <div id="math-game-container"></div>
+      </section>
+
+      <!-- SCREEN 2: TRAIN WORLD SANDBOX -->
+      <section id="screen-train" class="game-screen hidden">
+        <!-- Train Controls Header -->
+        <div class="train-world-header">
+          <div class="train-primary-actions">
+            <button id="btn-toggle-train" class="btn-train-go">
+              <span>🚂</span> GO TRAIN GO!
+            </button>
+            <button id="btn-train-whistle" class="btn-whistle-toot">
+              <span>🎺</span> TOOT TOOT!
+            </button>
+          </div>
+
+          <div class="train-preset-actions">
+            <button id="btn-quick-oval" class="btn-tool-secondary">
+              <span>🔄</span> Oval Loop
+            </button>
+            <button id="btn-clear-tracks" class="btn-tool-secondary">
+              <span>🧹</span> Clear Tracks
+            </button>
+          </div>
+        </div>
+
+        <!-- Train Sandbox Canvas Area -->
+        <div class="train-sandbox-container">
+          <!-- Interactive Whistle Pull Cord hanging on side -->
+          <div id="whistle-pull-cord" class="whistle-cord" title="Pull Whistle!">
+            <div class="cord-string"></div>
+            <div class="cord-handle">🔔 PULL</div>
+          </div>
+
+          <div class="train-canvas-wrapper">
+            <canvas id="train-canvas" width="750" height="500"></canvas>
+          </div>
+        </div>
+
+        <!-- Train Track Builder Dock -->
+        <div class="track-dock">
+          <div class="dock-title">
+            <span>🔨 Tap tool, then tap grass to place track:</span>
+          </div>
+          <div class="dock-tools">
+            <button class="train-tool-btn active" data-tool="straight">
+              <span class="tool-icon">─</span>
+              <span class="tool-name">Straight</span>
+              <span class="tool-badge" id="badge-straight-count">12</span>
+            </button>
+
+            <button class="train-tool-btn" data-tool="curve">
+              <span class="tool-icon">┌</span>
+              <span class="tool-name">Curve (Tap to turn)</span>
+              <span class="tool-badge" id="badge-curve-count">12</span>
+            </button>
+
+            <button class="train-tool-btn" data-tool="station">
+              <span class="tool-icon">🚉</span>
+              <span class="tool-name">Station</span>
+              <span class="tool-badge" id="badge-station-count">2</span>
+            </button>
+
+            <button class="train-tool-btn" data-tool="tree">
+              <span class="tool-icon">🌲</span>
+              <span class="tool-name">Tree</span>
+              <span class="tool-badge" id="badge-tree-count">6</span>
+            </button>
+
+            <button class="train-tool-btn" data-tool="erase">
+              <span class="tool-icon">🧹</span>
+              <span class="tool-name">Eraser</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREEN 3: REWARDS & GARAGE -->
+      <section id="screen-rewards" class="game-screen hidden">
+        <div class="rewards-dashboard">
+          <!-- Golden Pass Showcase -->
+          <div class="golden-pass-card">
+            <img src="assets/golden_ticket.jpg" alt="Antoni's Golden Ticket" class="golden-ticket-img">
+            <div class="golden-ticket-info">
+              <h2>Antoni's Official Conductor Pass</h2>
+              <p>Kindergarten Master Engineer • Grade K</p>
+              <div class="ticket-stats-grid">
+                <div class="stat-box">
+                  <span class="stat-number" id="garage-stars">⭐ 3 Stars per Letter</span>
+                  <span class="stat-label">Handwriting Mastery</span>
+                </div>
+                <div class="stat-box">
+                  <span class="stat-number">🛤️ +2 Tracks per Stroke</span>
+                  <span class="stat-label">Railway Rewards</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Train Shed / Skin Selector -->
+          <div class="shed-section">
+            <h3 class="section-title">🚂 Antoni's Train Shed</h3>
+            <p class="section-desc">Choose which locomotive engine leads your railway:</p>
+            <div id="train-skin-selector" class="train-skins-grid">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+
+          <!-- Completed Letters Gallery -->
+          <div class="gallery-section">
+            <h3 class="section-title">⭐ Traced Letters & Numbers Gallery</h3>
+            <div id="completed-badges-list" class="badges-grid">
+              <!-- Rendered by JS -->
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Celebration & Reward Pop-up Modal -->
+    <div id="reward-modal" class="modal-overlay hidden" style="display: none;">
+      <div class="modal-card">
+        <button id="btn-close-reward-modal" class="modal-close-x" title="Close" aria-label="Close">✕</button>
+        <div class="modal-confetti-header">
+          <span class="modal-star-anim">⭐</span>
+          <span class="modal-train-anim">🚂</span>
+          <span class="modal-star-anim">⭐</span>
+        </div>
+        <h2 class="modal-title">AWESOME JOB, ANTONI!</h2>
+        <p class="modal-subtitle">You traced the strokes perfectly in the right direction!</p>
+
+        <div class="reward-box">
+          <div class="reward-icon-anim">🛤️</div>
+          <div class="reward-details">
+            <span class="reward-heading">New Tracks Earned:</span>
+            <span id="reward-tracks-count" class="reward-highlight">+2 Straight & +1 Curved Tracks</span>
+          </div>
+        </div>
+
+        <div id="reward-special-text" class="reward-special-pill hidden">
+          ✨ New Train Unlocked!
+        </div>
+
+        <div class="modal-actions">
+          <button id="btn-reward-keep-tracing" class="modal-btn btn-secondary">
+            <span>✍️</span> Keep Tracing
+          </button>
+          <button id="btn-reward-go-train" class="modal-btn btn-primary">
+            <span>🚂</span> Build in Train World!
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts: 100% standalone, no server or build step required! -->
+  <script src="js/bundle.js"></script>
+</body>
+</html>

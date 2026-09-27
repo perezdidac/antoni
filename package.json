@@ -1,0 +1,18 @@
+{
+  "name": "antoni-train-express",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Kindergarten Tracing & Train Builder Game for Antoni",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "serve ."
+  },
+  "keywords": ["kids", "kindergarten", "tracing", "trains", "educational-game"],
+  "author": "Antigravity",
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}
