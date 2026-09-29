@@ -450,7 +450,74 @@ export class TracingEngine {
     if (progress.maxReachedIndex > 0) {
       const activePts = stroke.points.slice(0, progress.maxReachedIndex + 1);
       this.drawTrackPath(activePts, '#FF6B6B', '#EE5253', false);
+
+      if (activePts.length >= 2) {
+        const p1 = this.toCanvasCoords(activePts[activePts.length - 2]);
+        const p2 = this.toCanvasCoords(activePts[activePts.length - 1]);
+        const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+        this.drawMiniTrain(p2.x, p2.y, angle);
+      }
     }
+  }
+
+  drawMiniTrain(x, y, angle) {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+
+    const s = this.scaleFactor * 1.35;
+
+    // Locomotive body (crimson red)
+    ctx.fillStyle = '#EA2027';
+    ctx.shadowColor = 'rgba(234, 32, 39, 0.45)';
+    ctx.shadowBlur = 8 * s;
+    this.roundRect(ctx, -14 * s, -8 * s, 22 * s, 16 * s, 4 * s);
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Engineer Cab (navy blue)
+    ctx.fillStyle = '#0652DD';
+    this.roundRect(ctx, -20 * s, -10 * s, 10 * s, 20 * s, 3 * s);
+    ctx.fill();
+
+    // Cab window (warm yellow glow)
+    ctx.fillStyle = '#FFEAA7';
+    ctx.fillRect(-18 * s, -8 * s, 6 * s, 6 * s);
+
+    // Smokestack
+    ctx.fillStyle = '#2C3A47';
+    ctx.fillRect(2 * s, -14 * s, 5 * s, 7 * s);
+
+    // Pilot cowcatcher
+    ctx.fillStyle = '#F39C12';
+    ctx.beginPath();
+    ctx.moveTo(8 * s, -6 * s);
+    ctx.lineTo(14 * s, 0);
+    ctx.lineTo(8 * s, 6 * s);
+    ctx.closePath();
+    ctx.fill();
+
+    // Shining headlight
+    ctx.fillStyle = '#FFF200';
+    ctx.beginPath();
+    ctx.arc(10 * s, 0, 3.5 * s, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Wheels
+    ctx.fillStyle = '#2C3A47';
+    [-14, -2].forEach(wx => {
+      ctx.beginPath(); ctx.arc(wx * s, -9 * s, 3 * s, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(wx * s, 9 * s, 3 * s, 0, Math.PI * 2); ctx.fill();
+    });
+
+    // Animated mini smoke puff
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+    ctx.beginPath();
+    ctx.arc(-2 * s, -18 * s, (4 + Math.sin(this.guideAnimTime * 8) * 1.5) * s, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
   }
 
   // Draw colorful wooden railroad tracks with sleepers/ties along the path

@@ -7,16 +7,15 @@ const DEFAULT_STATE = {
   stars: 5,
   tickets: 1,
   inventory: {
-    straight: 12,
-    curve: 12,
-    crossing: 4,
+    straight: 14,
+    curve: 14,
+    bridge: 4,
+    farm: 2,
     station: 2,
     tree: 6
   },
-  unlockedTrains: ['red_steam', 'blue_puff'],
+  unlockedTrains: ['red_steam', 'golden_express'],
   selectedTrain: 'red_steam',
-  unlockedCars: ['coal_tender', 'passenger_car'],
-  selectedCars: ['coal_tender', 'passenger_car'],
   completedLetters: {},
   completedNumbers: {},
   completedWords: {}
@@ -36,7 +35,11 @@ class RewardManager {
         return {
           ...DEFAULT_STATE,
           ...parsed,
-          inventory: { ...DEFAULT_STATE.inventory, ...(parsed.inventory || {}) }
+          inventory: { ...DEFAULT_STATE.inventory, ...(parsed.inventory || {}) },
+          unlockedTrains: parsed.unlockedTrains || DEFAULT_STATE.unlockedTrains,
+          completedLetters: parsed.completedLetters || {},
+          completedNumbers: parsed.completedNumbers || {},
+          completedWords: parsed.completedWords || {}
         };
       }
     } catch (e) {

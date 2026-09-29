@@ -78,6 +78,32 @@ export class MathGame {
       this.render();
       sound.speak(spokenText);
       return;
+    } else if (this.mode === 'compare') {
+      type = 'compare';
+      num1 = Math.floor(Math.random() * 4) + 2;
+      let candidate = Math.floor(Math.random() * 4) + 2;
+      while (candidate === num1) {
+        candidate = Math.floor(Math.random() * 4) + 2;
+      }
+      num2 = candidate;
+      answer = num1 > num2 ? 'A' : 'B';
+
+      const CARGO_ICONS = ['🍎', '⭐', '📦', '🎈', '⚙️', '🎁'];
+      const icon1 = CARGO_ICONS[Math.floor(Math.random() * CARGO_ICONS.length)];
+      let icon2 = CARGO_ICONS[Math.floor(Math.random() * CARGO_ICONS.length)];
+      while (icon2 === icon1) {
+        icon2 = CARGO_ICONS[Math.floor(Math.random() * CARGO_ICONS.length)];
+      }
+
+      questionText = 'Which Train is Longer? 🚂';
+      spokenText = 'Which train is longer? Tap the train with more cargo wagons!';
+
+      this.currentProblem = {
+        type, num1, num2, answer, icon1, icon2, questionText, spokenText
+      };
+      this.render();
+      sound.speak(spokenText);
+      return;
     }
 
     cargoItems1 = Array(num1).fill(icon);
@@ -126,6 +152,7 @@ export class MathGame {
           <button class="math-mode-btn" data-mode="add_10">🌟 Sums to 10</button>
           <button class="math-mode-btn" data-mode="sub_5">➖ Take Away</button>
           <button class="math-mode-btn" data-mode="missing">🔢 Missing Car</button>
+          <button class="math-mode-btn" data-mode="compare">⚖️ Long or Short?</button>
         </div>
 
         <!-- Train Track Delivery Stage -->
@@ -182,6 +209,58 @@ export class MathGame {
     // Render Train Visual
     const trainVisualEl = this.container.querySelector('#math-train-visual');
     const p = this.currentProblem;
+    const ansLabel = this.container.querySelector('.math-answers-label');
+    const optionsGrid = this.container.querySelector('#math-options-grid');
+
+    if (p.type === 'compare') {
+      if (ansLabel) ansLabel.innerText = 'Tap the longer train with MORE cargo:';
+      if (optionsGrid) optionsGrid.innerHTML = '';
+
+      trainVisualEl.innerHTML = `
+        <div class="math-compare-container">
+          <div class="compare-train-card ${this.answered && p.answer === 'A' ? 'selected-correct' : ''}" data-train="A">
+            <div class="compare-train-header">
+              <span class="compare-train-badge">🔴 Train Red</span>
+              <span class="compare-train-count">${p.num1} Cargo Wagons</span>
+            </div>
+            <div class="compare-train-row">
+              <span class="compare-loco">🚂</span>
+              ${Array(p.num1).fill(0).map(() => `
+                <div class="compare-car">
+                  <span class="compare-car-icon">${p.icon1}</span>
+                  <span class="compare-car-wheels">● ●</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="compare-train-card ${this.answered && p.answer === 'B' ? 'selected-correct' : ''}" data-train="B">
+            <div class="compare-train-header">
+              <span class="compare-train-badge">🔵 Train Blue</span>
+              <span class="compare-train-count">${p.num2} Cargo Wagons</span>
+            </div>
+            <div class="compare-train-row">
+              <span class="compare-loco">🚆</span>
+              ${Array(p.num2).fill(0).map(() => `
+                <div class="compare-car">
+                  <span class="compare-car-icon">${p.icon2}</span>
+                  <span class="compare-car-wheels">● ●</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+
+      trainVisualEl.querySelectorAll('.compare-train-card').forEach(card => {
+        card.addEventListener('click', () => {
+          this.handleCompareAnswer(card.dataset.train, card);
+        });
+      });
+      return;
+    }
+
+    if (ansLabel) ansLabel.innerText = 'Tap the winning train car:';
 
     if (p.type === 'addition') {
       trainVisualEl.innerHTML = `

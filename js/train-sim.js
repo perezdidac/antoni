@@ -22,19 +22,20 @@ export class TrainWorld {
     this.rows = 8;
     this.grid = []; // 2D array [row][col]
 
-    this.selectedTool = 'straight'; // 'straight', 'curve', 'station', 'tree', 'erase'
-    this.curveSubtype = 'br'; // 'br', 'bl', 'tr', 'tl'
-
-    // Train state
+    this.selectedTool = 'straight';
     this.trainRunning = false;
-    this.trainSpeed = 2.0; // Slow, pleasant speed
+    this.trainSpeed = 2.2;
+    this.isNightMode = false;
+    this.locomotiveSkin = 'red_steam';
+    this.animalPassengers = ['🐮', '🦁', '🦒', '🐶', '🐑', '🐷'];
+    this.currentAnimalIdx = 0;
     this.trainPos = { row: 2, col: 2, subX: 0.5, subY: 0.5, dir: DIR_RIGHT };
     this.cars = [
       { type: 'tender', dist: 0.9 },
       { type: 'passenger', dist: 1.8 },
-      { type: 'animal', dist: 2.7 }
+      { type: 'animal', dist: 2.7, animal: '🐮' }
     ];
-    this.historyTrail = []; // recorded positions for trailing cars
+    this.historyTrail = [];
     this.smokePuffs = [];
     this.stationTimer = 0;
     this.chugTimer = 0;
@@ -44,6 +45,27 @@ export class TrainWorld {
     this.initCanvasResolution();
     this.attachEvents();
     this.startLoop();
+  }
+
+  setSpeed(mult) {
+    this.trainSpeed = 1.0 * mult;
+  }
+
+  toggleNight() {
+    this.isNightMode = !this.isNightMode;
+    return this.isNightMode;
+  }
+
+  cycleAnimalPassenger() {
+    this.currentAnimalIdx = (this.currentAnimalIdx + 1) % this.animalPassengers.length;
+    const nextAnimal = this.animalPassengers[this.currentAnimalIdx];
+    const animalCar = this.cars.find(c => c.type === 'animal');
+    if (animalCar) animalCar.animal = nextAnimal;
+    return nextAnimal;
+  }
+
+  setLocomotiveSkin(skin) {
+    this.locomotiveSkin = skin;
   }
 
   initGrid() {
@@ -124,6 +146,8 @@ export class TrainWorld {
     if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) return;
     let category = 'straight';
     if (pieceType.startsWith('curve')) category = 'curve';
+    else if (pieceType.startsWith('bridge')) category = 'bridge';
+    else if (pieceType === 'farm') category = 'farm';
     else if (pieceType === 'station') category = 'station';
     else if (pieceType === 'tree') category = 'tree';
 
@@ -137,21 +161,22 @@ export class TrainWorld {
   getConnections(type) {
     switch (type) {
       case 'straight_h':
+      case 'bridge_h':
+      case 'farm':
         return [DIR_LEFT, DIR_RIGHT];
       case 'straight_v':
+      case 'bridge_v':
         return [DIR_UP, DIR_DOWN];
-      case 'curve_br': // Top-left corner: connects Bottom and Right
+      case 'curve_br':
         return [DIR_DOWN, DIR_RIGHT];
-      case 'curve_bl': // Top-right corner: connects Bottom and Left
+      case 'curve_bl':
         return [DIR_DOWN, DIR_LEFT];
-      case 'curve_tr': // Bottom-left corner: connects Top and Right
+      case 'curve_tr':
         return [DIR_UP, DIR_RIGHT];
-      case 'curve_tl': // Bottom-right corner: connects Top and Left
+      case 'curve_tl':
         return [DIR_UP, DIR_LEFT];
       case 'station':
-        return [DIR_UP, DIR_DOWN]; // or horizontal
-      case 'crossing':
-        return [DIR_UP, DIR_DOWN, DIR_LEFT, DIR_RIGHT];
+        return [DIR_UP, DIR_DOWN];
       default:
         return [];
     }
@@ -245,6 +270,38 @@ export class TrainWorld {
       if (rewards.usePiece('curve')) {
         this.setPiece(row, col, 'curve_br');
         sound.playTrackSnap();
+      } else {
+        sound.playGentleNudge();
+      }
+      return;
+    }
+
+    if (this.selectedTool === 'bridge') {
+      if (existing && (existing.type === 'bridge_h' || existing.type === 'bridge_v')) {
+        const nextType = existing.type === 'bridge_h' ? 'bridge_v' : 'bridge_h';
+        existing.type = nextType;
+        existing.connections = this.getConnections(nextType);
+        sound.playTrackSnap();
+        return;
+      }
+      if (rewards.usePiece('bridge')) {
+        this.setPiece(row, col, 'bridge_h');
+        sound.playTrackSnap();
+      } else {
+        sound.playGentleNudge();
+      }
+      return;
+    }
+
+    if (this.selectedTool === 'farm') {
+      if (existing && existing.type === 'farm') {
+        sound.playAnimalSound?.(this.animalPassengers[this.currentAnimalIdx]);
+        return;
+      }
+      if (rewards.usePiece('farm')) {
+        this.setPiece(row, col, 'farm');
+        sound.playTrackSnap();
+        sound.playAnimalSound?.('🐮');
       } else {
         sound.playGentleNudge();
       }
@@ -483,26 +540,53 @@ export class TrainWorld {
 
   drawLandscape() {
     const ctx = this.ctx;
-    // Cheerful lush meadow gradient
-    const grad = ctx.createLinearGradient(0, 0, 0, this.height);
-    grad.addColorStop(0, '#B8E994');
-    grad.addColorStop(1, '#78E08F');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, this.width, this.height);
+    if (this.isNightMode) {
+      const grad = ctx.createLinearGradient(0, 0, 0, this.height);
+      grad.addColorStop(0, '#0B132B');
+      grad.addColorStop(0.6, '#1C2541');
+      grad.addColorStop(1, '#0F172A');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, this.width, this.height);
 
-    // Cute little daisies in corners
-    ctx.fillStyle = '#FFFFFF';
-    ctx.beginPath();
-    ctx.arc(25, 25, 5, 0, Math.PI * 2);
-    ctx.arc(this.width - 25, 30, 5, 0, Math.PI * 2);
-    ctx.arc(35, this.height - 25, 5, 0, Math.PI * 2);
-    ctx.arc(this.width - 35, this.height - 30, 5, 0, Math.PI * 2);
-    ctx.fill();
+      // Twinkling stars
+      ctx.fillStyle = '#FFFFFF';
+      const stars = [
+        {x: 45, y: 30, r: 1.5}, {x: 130, y: 65, r: 2}, {x: 240, y: 22, r: 1.2},
+        {x: 360, y: 50, r: 2.2}, {x: 490, y: 28, r: 1.8}, {x: 620, y: 60, r: 2},
+        {x: 690, y: 25, r: 1.5}, {x: 190, y: 85, r: 1.2}, {x: 550, y: 75, r: 1.6}
+      ];
+      stars.forEach(s => {
+        const pulse = Math.sin(Date.now() * 0.003 + s.x) * 0.35 + 0.75;
+        ctx.globalAlpha = Math.min(1.0, Math.max(0.2, pulse));
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1.0;
+
+      // Glowing crescent moon
+      ctx.font = '28px serif';
+      ctx.fillText('🌙', this.width - 55, 42);
+    } else {
+      const grad = ctx.createLinearGradient(0, 0, 0, this.height);
+      grad.addColorStop(0, '#B8E994');
+      grad.addColorStop(1, '#78E08F');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, this.width, this.height);
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.arc(25, 25, 5, 0, Math.PI * 2);
+      ctx.arc(this.width - 25, 30, 5, 0, Math.PI * 2);
+      ctx.arc(35, this.height - 25, 5, 0, Math.PI * 2);
+      ctx.arc(this.width - 35, this.height - 30, 5, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 
   drawGridOverlay() {
     const ctx = this.ctx;
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+    ctx.strokeStyle = this.isNightMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.35)';
     ctx.lineWidth = 1.5;
 
     for (let r = 0; r <= this.rows; r++) {
@@ -552,6 +636,10 @@ export class TrainWorld {
       this.drawSteelRails(ctx, midX + 7, y, midX + 7, y + size);
     } else if (item.type.startsWith('curve_')) {
       this.drawCurveTrack(ctx, item.type, x, y, size);
+    } else if (item.type.startsWith('bridge_')) {
+      this.drawBridgeTile(ctx, item.type, x, y, size);
+    } else if (item.type === 'farm') {
+      this.drawFarmTile(ctx, x, y, size);
     } else if (item.type === 'station') {
       this.drawWoodenTies(ctx, x, y, size, 'v');
       this.drawSteelRails(ctx, midX - 7, y, midX - 7, y + size);
@@ -562,6 +650,76 @@ export class TrainWorld {
     }
 
     ctx.restore();
+  }
+
+  drawBridgeTile(ctx, type, x, y, size) {
+    const midX = x + size / 2;
+    const midY = y + size / 2;
+
+    // Sparkling river water under tracks
+    ctx.fillStyle = this.isNightMode ? '#1e3799' : '#00a8ff';
+    ctx.fillRect(x + 2, y + 2, size - 4, size - 4);
+
+    // Water ripples
+    ctx.strokeStyle = this.isNightMode ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.6)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(x + 6, y + size * 0.3);
+    ctx.lineTo(x + size * 0.45, y + size * 0.3);
+    ctx.moveTo(x + size * 0.55, y + size * 0.7);
+    ctx.lineTo(x + size - 6, y + size * 0.7);
+    ctx.stroke();
+
+    if (type === 'bridge_h') {
+      // Wooden bridge safety railings
+      ctx.fillStyle = '#8B5A2B';
+      ctx.fillRect(x, y + 4, size, 5);
+      ctx.fillRect(x, y + size - 9, size, 5);
+
+      this.drawWoodenTies(ctx, x, y, size, 'h');
+      this.drawSteelRails(ctx, x, midY - 7, x + size, midY - 7);
+      this.drawSteelRails(ctx, x, midY + 7, x + size, midY + 7);
+    } else {
+      ctx.fillStyle = '#8B5A2B';
+      ctx.fillRect(x + 4, y, 5, size);
+      ctx.fillRect(x + size - 9, y, 5, size);
+
+      this.drawWoodenTies(ctx, x, y, size, 'v');
+      this.drawSteelRails(ctx, midX - 7, y, midX - 7, y + size);
+      this.drawSteelRails(ctx, midX + 7, y, midX + 7, y + size);
+    }
+  }
+
+  drawFarmTile(ctx, x, y, size) {
+    const midY = y + size / 2;
+
+    // Wooden fence along top
+    ctx.strokeStyle = '#A0522D';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.moveTo(x + 4, y + 10);
+    ctx.lineTo(x + size - 4, y + 10);
+    ctx.stroke();
+
+    // Red barn building
+    ctx.fillStyle = '#C0392B';
+    ctx.fillRect(x + 4, y + 12, 24, 20);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.moveTo(x + 2, y + 12);
+    ctx.lineTo(x + 16, y + 5);
+    ctx.lineTo(x + 30, y + 12);
+    ctx.closePath();
+    ctx.fill();
+
+    // Cow grazing on pasture
+    ctx.font = '16px serif';
+    ctx.fillText('🐮', x + size - 26, y + 26);
+
+    // Track passing through farm pasture
+    this.drawWoodenTies(ctx, x, y, size, 'h');
+    this.drawSteelRails(ctx, x, midY - 7, x + size, midY - 7);
+    this.drawSteelRails(ctx, x, midY + 7, x + size, midY + 7);
   }
 
   drawWoodenTies(ctx, x, y, size, dir) {
@@ -696,7 +854,7 @@ export class TrainWorld {
     this.cars.forEach((car, idx) => {
       const trailIndex = Math.min(this.historyTrail.length - 1, Math.floor((idx + 1) * spacing * 0.5));
       const pos = this.historyTrail[trailIndex] || { x: locoPos.x, y: locoPos.y, angle: locoAngle };
-      this.drawCar(pos.x, pos.y, pos.angle, car.type);
+      this.drawCar(pos.x, pos.y, pos.angle, car);
     });
 
     // 2. Draw Locomotive Engine
@@ -709,123 +867,175 @@ export class TrainWorld {
     ctx.translate(x, y);
     ctx.rotate(angle);
 
-    const isGolden = rewards.state.selectedTrain === 'golden_express';
-    const bodyColor = isGolden ? '#F1C40F' : '#EA2027';
-    const cabColor = isGolden ? '#F39C12' : '#0652DD';
+    const skin = rewards.state.selectedTrain || this.locomotiveSkin || 'red_steam';
 
-    // Shadow
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-    ctx.beginPath();
-    ctx.roundRect(-22, -12, 44, 26, 4);
-    ctx.fill();
+    // Night Mode Headlight Beam projecting forward!
+    if (this.isNightMode) {
+      ctx.save();
+      const beamGrad = ctx.createRadialGradient(16, 0, 5, 80, 0, 90);
+      beamGrad.addColorStop(0, 'rgba(255, 234, 167, 0.75)');
+      beamGrad.addColorStop(0.5, 'rgba(255, 234, 167, 0.35)');
+      beamGrad.addColorStop(1, 'rgba(255, 234, 167, 0.0)');
+      ctx.fillStyle = beamGrad;
+      ctx.beginPath();
+      ctx.moveTo(14, -6);
+      ctx.lineTo(95, -36);
+      ctx.lineTo(95, 36);
+      ctx.lineTo(14, 6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
 
-    // Boiler body
-    ctx.fillStyle = bodyColor;
-    ctx.beginPath();
-    ctx.roundRect(-16, -11, 26, 22, 5);
-    ctx.fill();
-
-    // Cabin
-    ctx.fillStyle = cabColor;
-    ctx.beginPath();
-    ctx.roundRect(-24, -13, 15, 26, 4);
-    ctx.fill();
-
-    // Cabin window
-    ctx.fillStyle = '#E0F7FA';
-    ctx.fillRect(-22, -10, 11, 8);
-
-    // Smokestack
-    ctx.fillStyle = '#2C3A47';
-    ctx.beginPath();
-    ctx.roundRect(4, -15, 6, 8, 2);
-    ctx.fill();
-
-    // Golden headlight
-    ctx.fillStyle = '#FFEAA7';
-    ctx.beginPath();
-    ctx.arc(12, 0, 4, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Big friendly locomotive face / cowcatcher
-    ctx.fillStyle = '#B33939';
-    ctx.beginPath();
-    ctx.moveTo(10, -9);
-    ctx.lineTo(16, -4);
-    ctx.lineTo(16, 4);
-    ctx.lineTo(10, 9);
-    ctx.closePath();
-    ctx.fill();
-
-    // Wheels
-    ctx.fillStyle = '#2C3A47';
-    ctx.beginPath();
-    ctx.arc(-16, -12, 4, 0, Math.PI * 2);
-    ctx.arc(0, -12, 4, 0, Math.PI * 2);
-    ctx.arc(-16, 12, 4, 0, Math.PI * 2);
-    ctx.arc(0, 12, 4, 0, Math.PI * 2);
-    ctx.fill();
+    if (skin === 'golden_express') {
+      // Golden Conductor Train
+      ctx.fillStyle = '#F1C40F';
+      ctx.beginPath(); ctx.roundRect(-16, -11, 26, 22, 5); ctx.fill();
+      ctx.fillStyle = '#F39C12';
+      ctx.beginPath(); ctx.roundRect(-24, -13, 15, 26, 4); ctx.fill();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(-22, -10, 11, 8);
+      ctx.font = '10px serif';
+      ctx.fillText('👑', -12, 4);
+      ctx.fillStyle = '#D68910';
+      ctx.beginPath(); ctx.roundRect(4, -15, 6, 8, 2); ctx.fill();
+      ctx.fillStyle = '#FFF200';
+      ctx.beginPath(); ctx.arc(12, 0, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#D68910';
+      [-16, 0].forEach(wx => {
+        ctx.beginPath(); ctx.arc(wx, -12, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(wx, 12, 4, 0, Math.PI * 2); ctx.fill();
+      });
+    } else if (skin === 'rainbow_rocket') {
+      // Rainbow Rocket Train
+      const colors = ['#FF4757', '#FFA502', '#2ED573', '#1E90FF', '#9B59B6'];
+      colors.forEach((col, i) => {
+        ctx.fillStyle = col;
+        ctx.fillRect(-24 + i * 7, -11, 8, 22);
+      });
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.moveTo(11, -11);
+      ctx.lineTo(22, 0);
+      ctx.lineTo(11, 11);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#00CEC9';
+      ctx.beginPath(); ctx.arc(-2, 0, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#FF7675';
+      ctx.beginPath();
+      ctx.moveTo(-24, -6);
+      ctx.lineTo(-32 - Math.random() * 4, 0);
+      ctx.lineTo(-24, 6);
+      ctx.closePath();
+      ctx.fill();
+    } else if (skin === 'bullet_train') {
+      // Silver Shinkansen Bullet Train
+      ctx.fillStyle = '#DFE4EA';
+      ctx.beginPath(); ctx.roundRect(-24, -11, 35, 22, 5); ctx.fill();
+      ctx.fillStyle = '#CED6E0';
+      ctx.beginPath();
+      ctx.moveTo(11, -11);
+      ctx.lineTo(25, 0);
+      ctx.lineTo(11, 11);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#2E86DE';
+      ctx.fillRect(-24, -2, 42, 4);
+      ctx.fillStyle = '#2C3A47';
+      ctx.beginPath(); ctx.roundRect(2, -8, 12, 5, 2); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(2, 3, 12, 5, 2); ctx.fill();
+    } else if (skin === 'dino_express') {
+      // Safari Dino Train
+      ctx.fillStyle = '#20BF6B';
+      ctx.beginPath(); ctx.roundRect(-16, -11, 26, 22, 5); ctx.fill();
+      ctx.fillStyle = '#0B8457';
+      ctx.beginPath(); ctx.roundRect(-24, -13, 15, 26, 4); ctx.fill();
+      ctx.fillStyle = '#26DE81';
+      [-18, -10, -2, 6].forEach(sx => {
+        ctx.beginPath();
+        ctx.moveTo(sx - 3, -11);
+        ctx.lineTo(sx, -18);
+        ctx.lineTo(sx + 3, -11);
+        ctx.closePath();
+        ctx.fill();
+      });
+      ctx.fillStyle = '#FFF';
+      ctx.beginPath(); ctx.arc(-16, -5, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.arc(-15, -5, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#FFEAA7';
+      ctx.beginPath(); ctx.arc(12, 0, 4, 0, Math.PI * 2); ctx.fill();
+    } else {
+      // Classic Red Little Steam Engine
+      ctx.fillStyle = '#EA2027';
+      ctx.beginPath(); ctx.roundRect(-16, -11, 26, 22, 5); ctx.fill();
+      ctx.fillStyle = '#0652DD';
+      ctx.beginPath(); ctx.roundRect(-24, -13, 15, 26, 4); ctx.fill();
+      ctx.fillStyle = '#E0F7FA';
+      ctx.fillRect(-22, -10, 11, 8);
+      ctx.fillStyle = '#2C3A47';
+      ctx.beginPath(); ctx.roundRect(4, -15, 6, 8, 2); ctx.fill();
+      ctx.fillStyle = '#FFEAA7';
+      ctx.beginPath(); ctx.arc(12, 0, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#2C3A47';
+      [-16, 0].forEach(wx => {
+        ctx.beginPath(); ctx.arc(wx, -12, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(wx, 12, 4, 0, Math.PI * 2); ctx.fill();
+      });
+    }
 
     ctx.restore();
   }
 
-  drawCar(x, y, angle, type) {
+  drawCar(x, y, angle, carOrType) {
     const ctx = this.ctx;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(angle);
 
+    const type = typeof carOrType === 'object' ? carOrType.type : carOrType;
+    const carObj = typeof carOrType === 'object' ? carOrType : null;
+
     if (type === 'tender') {
-      // Coal tender car
       ctx.fillStyle = '#2C3A47';
       ctx.beginPath();
       ctx.roundRect(-14, -10, 28, 20, 3);
       ctx.fill();
-
-      // Coal chunks
-      ctx.fillStyle = '#1E272E';
-      ctx.beginPath();
-      ctx.arc(-4, -2, 5, 0, Math.PI * 2);
-      ctx.arc(4, -2, 5, 0, Math.PI * 2);
-      ctx.arc(0, 2, 4, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.fillStyle = '#1A252F';
+      ctx.fillRect(-10, -7, 20, 14);
     } else if (type === 'passenger') {
-      // Cheerful Yellow/Blue passenger car
       ctx.fillStyle = '#F39C12';
       ctx.beginPath();
       ctx.roundRect(-16, -11, 32, 22, 4);
       ctx.fill();
-
-      // Windows
-      ctx.fillStyle = '#E0F7FA';
+      // Warm glowing windows in night mode, pale blue in day
+      ctx.fillStyle = this.isNightMode ? '#FFEAA7' : '#E0F7FA';
       ctx.fillRect(-12, -8, 7, 6);
       ctx.fillRect(-2, -8, 7, 6);
       ctx.fillRect(8, -8, 7, 6);
-
-      // Roof
-      ctx.fillStyle = '#D35400';
-      ctx.fillRect(-16, -13, 32, 3);
     } else {
-      // Animal safari car (with smiling giraffe neck poking out!)
-      ctx.fillStyle = '#27AE60';
+      // Animal Passenger Carriage
+      ctx.fillStyle = '#D35400';
       ctx.beginPath();
       ctx.roundRect(-16, -11, 32, 22, 4);
       ctx.fill();
 
-      // Cute Giraffe head
-      ctx.fillStyle = '#F1C40F';
-      ctx.beginPath();
-      ctx.arc(0, -12, 6, 0, Math.PI * 2);
-      ctx.fill();
-      // Spots
-      ctx.fillStyle = '#E67E22';
-      ctx.beginPath();
-      ctx.arc(-2, -13, 2, 0, Math.PI * 2);
-      ctx.arc(2, -11, 2, 0, Math.PI * 2);
-      ctx.fill();
+      // Wooden slats
+      ctx.strokeStyle = '#BA4A00';
+      ctx.lineWidth = 1.5;
+      [-10, 0, 10].forEach(lx => {
+        ctx.beginPath(); ctx.moveTo(lx, -11); ctx.lineTo(lx, 11); ctx.stroke();
+      });
+
+      // Animal passenger emoji peeking out!
+      const animalEmoji = (carObj && carObj.animal) || this.animalPassengers[this.currentAnimalIdx] || '🐮';
+      ctx.font = '15px serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(animalEmoji, 0, 0);
     }
 
-    // Wheels
     ctx.fillStyle = '#333333';
     ctx.beginPath();
     ctx.arc(-10, -11, 3, 0, Math.PI * 2);

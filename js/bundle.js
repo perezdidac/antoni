@@ -286,6 +286,60 @@
       osc.stop(now + 0.06);
     }
 
+    playAnimalSound(animal) {
+      if (!this.soundEnabled) return;
+      this.init();
+      if (animal === '🐮') {
+        if (this.ctx) {
+          const now = this.ctx.currentTime;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(145, now);
+          osc.frequency.linearRampToValueAtTime(110, now + 0.45);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.48);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.5);
+        }
+        this.speak('Moo! The happy cow is on board!');
+      } else if (animal === '🐶') {
+        this.speak('Woof woof! Puppy is ready for the railway adventure!');
+      } else if (animal === '🦁') {
+        this.speak('Roar! Lion engineer is on duty!');
+      } else if (animal === '🐑') {
+        this.speak('Baa! The sheep loves the train ride!');
+      } else if (animal === '🦒') {
+        this.speak('The tall giraffe can see the whole railway!');
+      } else if (animal === '🐷') {
+        this.speak('Oink oink! Piggy is enjoying the ride!');
+      } else {
+        this.playBell();
+      }
+    }
+
+    playNightHoot() {
+      if (!this.soundEnabled) return;
+      this.init();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      [440, 392].forEach((freq, i) => {
+        const t = now + i * 0.28;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, t);
+        gain.gain.setValueAtTime(0.08, t);
+        gain.gain.exponentialRampToValueAtTime(0.001, t + 0.24);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(t);
+        osc.stop(t + 0.26);
+      });
+    }
+
     speak(text) {
       if (!this.voiceEnabled || !this.speechSynth) return;
       try {
@@ -1430,11 +1484,12 @@
   const DEFAULT_STATE = {
     stars: 5,
     tickets: 1,
-    inventory: { straight: 14, curve: 14, station: 2, tree: 6 },
-    unlockedTrains: ['red_steam'],
+    inventory: { straight: 14, curve: 14, bridge: 4, station: 2, farm: 2, tree: 6 },
+    unlockedTrains: ['red_steam', 'golden_express'],
     selectedTrain: 'red_steam',
     completedLetters: {},
-    completedNumbers: {}
+    completedNumbers: {},
+    completedWords: {}
   };
 
   class RewardManager {
@@ -1446,7 +1501,18 @@
     load() {
       try {
         const data = localStorage.getItem(STORAGE_KEY);
-        if (data) return { ...DEFAULT_STATE, ...JSON.parse(data) };
+        if (data) {
+          const parsed = JSON.parse(data);
+          return {
+            ...DEFAULT_STATE,
+            ...parsed,
+            inventory: { ...DEFAULT_STATE.inventory, ...(parsed.inventory || {}) },
+            unlockedTrains: parsed.unlockedTrains || DEFAULT_STATE.unlockedTrains,
+            completedLetters: parsed.completedLetters || {},
+            completedNumbers: parsed.completedNumbers || {},
+            completedWords: parsed.completedWords || {}
+          };
+        }
       } catch (e) {}
       return JSON.parse(JSON.stringify(DEFAULT_STATE));
     }
@@ -1476,10 +1542,27 @@
       this.state.inventory.straight += straight;
       this.state.inventory.curve += curve;
 
+      // Bonus bridge & farm building pieces
+      if (this.state.stars % 6 === 0) {
+        this.state.inventory.bridge = (this.state.inventory.bridge || 0) + 1;
+      }
+      if (this.state.stars % 9 === 0) {
+        this.state.inventory.farm = (this.state.inventory.farm || 0) + 1;
+      }
+
       let specialUnlock = null;
       if ((item.symbol === 'P' || item.symbol === 'A' || item.symbol === 'Antoni') && !this.state.unlockedTrains.includes('golden_express')) {
         this.state.unlockedTrains.push('golden_express');
         specialUnlock = '✨ Golden Conductor Train!';
+      } else if (this.state.stars >= 10 && !this.state.unlockedTrains.includes('rainbow_rocket')) {
+        this.state.unlockedTrains.push('rainbow_rocket');
+        specialUnlock = '🌈 Rainbow Rocket Train!';
+      } else if (this.state.stars >= 20 && !this.state.unlockedTrains.includes('bullet_train')) {
+        this.state.unlockedTrains.push('bullet_train');
+        specialUnlock = '⚡ Silver Bullet Shinkansen!';
+      } else if (this.state.stars >= 35 && !this.state.unlockedTrains.includes('dino_express')) {
+        this.state.unlockedTrains.push('dino_express');
+        specialUnlock = '🦕 Dino Safari Explorer!';
       } else if (item.specialReward) {
         specialUnlock = `✨ ${item.specialReward}!`;
       }
@@ -1927,7 +2010,74 @@
       if (progress.maxReachedIndex > 0) {
         const activePts = stroke.points.slice(0, progress.maxReachedIndex + 1);
         this.drawTrackPath(activePts, '#FF6B6B', '#EE5253', false);
+
+        if (activePts.length >= 2) {
+          const p1 = this.toCanvasCoords(activePts[activePts.length - 2]);
+          const p2 = this.toCanvasCoords(activePts[activePts.length - 1]);
+          const angle = Math.atan2(p2.y - p1.y, p2.x - p1.x);
+          this.drawMiniTrain(p2.x, p2.y, angle);
+        }
       }
+    }
+
+    drawMiniTrain(x, y, angle) {
+      const ctx = this.ctx;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+
+      const s = this.scaleFactor * 1.35;
+
+      // Locomotive body (crimson red)
+      ctx.fillStyle = '#EA2027';
+      ctx.shadowColor = 'rgba(234, 32, 39, 0.45)';
+      ctx.shadowBlur = 8 * s;
+      this.roundRect(ctx, -14 * s, -8 * s, 22 * s, 16 * s, 4 * s);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // Engineer Cab (navy blue)
+      ctx.fillStyle = '#0652DD';
+      this.roundRect(ctx, -20 * s, -10 * s, 10 * s, 20 * s, 3 * s);
+      ctx.fill();
+
+      // Cab window (warm yellow glow)
+      ctx.fillStyle = '#FFEAA7';
+      ctx.fillRect(-18 * s, -8 * s, 6 * s, 6 * s);
+
+      // Smokestack
+      ctx.fillStyle = '#2C3A47';
+      ctx.fillRect(2 * s, -14 * s, 5 * s, 7 * s);
+
+      // Pilot cowcatcher
+      ctx.fillStyle = '#F39C12';
+      ctx.beginPath();
+      ctx.moveTo(8 * s, -6 * s);
+      ctx.lineTo(14 * s, 0);
+      ctx.lineTo(8 * s, 6 * s);
+      ctx.closePath();
+      ctx.fill();
+
+      // Shining headlight
+      ctx.fillStyle = '#FFF200';
+      ctx.beginPath();
+      ctx.arc(10 * s, 0, 3.5 * s, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Wheels
+      ctx.fillStyle = '#2C3A47';
+      [-14, -2].forEach(wx => {
+        ctx.beginPath(); ctx.arc(wx * s, -9 * s, 3 * s, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(wx * s, 9 * s, 3 * s, 0, Math.PI * 2); ctx.fill();
+      });
+
+      // Animated mini smoke puff
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+      ctx.beginPath();
+      ctx.arc(-2 * s, -18 * s, (4 + Math.sin(this.guideAnimTime * 8) * 1.5) * s, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
     }
 
     drawTrackPath(points, mainColor, railColor, isComplete = false) {
@@ -2119,12 +2269,16 @@
       this.grid = [];
       this.selectedTool = 'straight';
       this.trainRunning = false;
-      this.trainSpeed = 2.0;
+      this.trainSpeed = 2.2;
+      this.isNightMode = false;
+      this.locomotiveSkin = rewards.state.selectedTrain || 'red_steam';
+      this.animalPassengers = ['🐮', '🦁', '🦒', '🐶', '🐑', '🐷'];
+      this.currentAnimalIdx = 0;
       this.trainPos = { row: 2, col: 2, subX: 0.5, subY: 0.5, dir: DIR_RIGHT };
       this.cars = [
         { type: 'tender', dist: 0.9 },
         { type: 'passenger', dist: 1.8 },
-        { type: 'animal', dist: 2.7 }
+        { type: 'animal', dist: 2.7, animal: '🐮' }
       ];
       this.historyTrail = [];
       this.smokePuffs = [];
@@ -2136,6 +2290,27 @@
       this.initCanvasResolution();
       this.attachEvents();
       this.startLoop();
+    }
+
+    setSpeed(mult) {
+      this.trainSpeed = 1.0 * mult;
+    }
+
+    toggleNight() {
+      this.isNightMode = !this.isNightMode;
+      return this.isNightMode;
+    }
+
+    cycleAnimalPassenger() {
+      this.currentAnimalIdx = (this.currentAnimalIdx + 1) % this.animalPassengers.length;
+      const nextAnimal = this.animalPassengers[this.currentAnimalIdx];
+      const animalCar = this.cars.find(c => c.type === 'animal');
+      if (animalCar) animalCar.animal = nextAnimal;
+      return nextAnimal;
+    }
+
+    setLocomotiveSkin(skin) {
+      this.locomotiveSkin = skin;
     }
 
     initGrid() {
@@ -2205,6 +2380,8 @@
       if (row < 0 || row >= this.rows || col < 0 || col >= this.cols) return;
       let category = 'straight';
       if (pieceType.startsWith('curve')) category = 'curve';
+      else if (pieceType.startsWith('bridge')) category = 'bridge';
+      else if (pieceType === 'farm') category = 'farm';
       else if (pieceType === 'station') category = 'station';
       else if (pieceType === 'tree') category = 'tree';
 
@@ -2217,8 +2394,13 @@
 
     getConnections(type) {
       switch (type) {
-        case 'straight_h': return [DIR_LEFT, DIR_RIGHT];
-        case 'straight_v': return [DIR_UP, DIR_DOWN];
+        case 'straight_h':
+        case 'bridge_h':
+        case 'farm':
+          return [DIR_LEFT, DIR_RIGHT];
+        case 'straight_v':
+        case 'bridge_v':
+          return [DIR_UP, DIR_DOWN];
         case 'curve_br': return [DIR_DOWN, DIR_RIGHT];
         case 'curve_bl': return [DIR_DOWN, DIR_LEFT];
         case 'curve_tr': return [DIR_UP, DIR_RIGHT];
@@ -2314,6 +2496,38 @@
         if (rewards.usePiece('curve')) {
           this.setPiece(row, col, 'curve_br');
           sound.playTrackSnap();
+        } else {
+          sound.playGentleNudge();
+        }
+        return;
+      }
+
+      if (this.selectedTool === 'bridge') {
+        if (existing && (existing.type === 'bridge_h' || existing.type === 'bridge_v')) {
+          const nextType = existing.type === 'bridge_h' ? 'bridge_v' : 'bridge_h';
+          existing.type = nextType;
+          existing.connections = this.getConnections(nextType);
+          sound.playTrackSnap();
+          return;
+        }
+        if (rewards.usePiece('bridge')) {
+          this.setPiece(row, col, 'bridge_h');
+          sound.playTrackSnap();
+        } else {
+          sound.playGentleNudge();
+        }
+        return;
+      }
+
+      if (this.selectedTool === 'farm') {
+        if (existing && existing.type === 'farm') {
+          sound.playAnimalSound?.(this.animalPassengers[this.currentAnimalIdx]);
+          return;
+        }
+        if (rewards.usePiece('farm')) {
+          this.setPiece(row, col, 'farm');
+          sound.playTrackSnap();
+          sound.playAnimalSound?.('🐮');
         } else {
           sound.playGentleNudge();
         }
@@ -2521,16 +2735,45 @@
 
     drawLandscape() {
       const ctx = this.ctx;
-      const grad = ctx.createLinearGradient(0, 0, 0, this.height);
-      grad.addColorStop(0, '#B8E994');
-      grad.addColorStop(1, '#78E08F');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, this.width, this.height);
+      if (this.isNightMode) {
+        const grad = ctx.createLinearGradient(0, 0, 0, this.height);
+        grad.addColorStop(0, '#0B132B');
+        grad.addColorStop(0.6, '#1C2541');
+        grad.addColorStop(1, '#0F172A');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, this.width, this.height);
+
+        // Twinkling stars
+        ctx.fillStyle = '#FFFFFF';
+        const stars = [
+          {x: 45, y: 30, r: 1.5}, {x: 130, y: 65, r: 2}, {x: 240, y: 22, r: 1.2},
+          {x: 360, y: 50, r: 2.2}, {x: 490, y: 28, r: 1.8}, {x: 620, y: 60, r: 2},
+          {x: 690, y: 25, r: 1.5}, {x: 190, y: 85, r: 1.2}, {x: 550, y: 75, r: 1.6}
+        ];
+        stars.forEach(s => {
+          const pulse = Math.sin(Date.now() * 0.003 + s.x) * 0.35 + 0.75;
+          ctx.globalAlpha = Math.min(1.0, Math.max(0.2, pulse));
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+          ctx.fill();
+        });
+        ctx.globalAlpha = 1.0;
+
+        // Glowing crescent moon
+        ctx.font = '28px serif';
+        ctx.fillText('🌙', this.width - 55, 42);
+      } else {
+        const grad = ctx.createLinearGradient(0, 0, 0, this.height);
+        grad.addColorStop(0, '#B8E994');
+        grad.addColorStop(1, '#78E08F');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, this.width, this.height);
+      }
     }
 
     drawGridOverlay() {
       const ctx = this.ctx;
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+      ctx.strokeStyle = this.isNightMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.35)';
       ctx.lineWidth = 1.5;
 
       for (let r = 0; r <= this.rows; r++) {
@@ -2579,6 +2822,10 @@
         this.drawSteelRails(ctx, midX + 7, y, midX + 7, y + size);
       } else if (item.type.startsWith('curve_')) {
         this.drawCurveTrack(ctx, item.type, x, y, size);
+      } else if (item.type.startsWith('bridge_')) {
+        this.drawBridgeTile(ctx, item.type, x, y, size);
+      } else if (item.type === 'farm') {
+        this.drawFarmTile(ctx, x, y, size);
       } else if (item.type === 'station') {
         this.drawWoodenTies(ctx, x, y, size, 'v');
         this.drawSteelRails(ctx, midX - 7, y, midX - 7, y + size);
@@ -2588,6 +2835,76 @@
         this.drawTree(ctx, midX, midY, size);
       }
       ctx.restore();
+    }
+
+    drawBridgeTile(ctx, type, x, y, size) {
+      const midX = x + size / 2;
+      const midY = y + size / 2;
+
+      // Sparkling river water under tracks
+      ctx.fillStyle = this.isNightMode ? '#1e3799' : '#00a8ff';
+      ctx.fillRect(x + 2, y + 2, size - 4, size - 4);
+
+      // Water ripples
+      ctx.strokeStyle = this.isNightMode ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.6)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(x + 6, y + size * 0.3);
+      ctx.lineTo(x + size * 0.45, y + size * 0.3);
+      ctx.moveTo(x + size * 0.55, y + size * 0.7);
+      ctx.lineTo(x + size - 6, y + size * 0.7);
+      ctx.stroke();
+
+      if (type === 'bridge_h') {
+        // Wooden bridge safety railings
+        ctx.fillStyle = '#8B5A2B';
+        ctx.fillRect(x, y + 4, size, 5);
+        ctx.fillRect(x, y + size - 9, size, 5);
+
+        this.drawWoodenTies(ctx, x, y, size, 'h');
+        this.drawSteelRails(ctx, x, midY - 7, x + size, midY - 7);
+        this.drawSteelRails(ctx, x, midY + 7, x + size, midY + 7);
+      } else {
+        ctx.fillStyle = '#8B5A2B';
+        ctx.fillRect(x + 4, y, 5, size);
+        ctx.fillRect(x + size - 9, y, 5, size);
+
+        this.drawWoodenTies(ctx, x, y, size, 'v');
+        this.drawSteelRails(ctx, midX - 7, y, midX - 7, y + size);
+        this.drawSteelRails(ctx, midX + 7, y, midX + 7, y + size);
+      }
+    }
+
+    drawFarmTile(ctx, x, y, size) {
+      const midY = y + size / 2;
+
+      // Wooden fence along top
+      ctx.strokeStyle = '#A0522D';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(x + 4, y + 10);
+      ctx.lineTo(x + size - 4, y + 10);
+      ctx.stroke();
+
+      // Red barn building
+      ctx.fillStyle = '#C0392B';
+      ctx.fillRect(x + 4, y + 12, 24, 20);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      ctx.moveTo(x + 2, y + 12);
+      ctx.lineTo(x + 16, y + 5);
+      ctx.lineTo(x + 30, y + 12);
+      ctx.closePath();
+      ctx.fill();
+
+      // Cow grazing on pasture
+      ctx.font = '16px serif';
+      ctx.fillText('🐮', x + size - 26, y + 26);
+
+      // Track passing through farm pasture
+      this.drawWoodenTies(ctx, x, y, size, 'h');
+      this.drawSteelRails(ctx, x, midY - 7, x + size, midY - 7);
+      this.drawSteelRails(ctx, x, midY + 7, x + size, midY + 7);
     }
 
     drawWoodenTies(ctx, x, y, size, dir) {
@@ -2694,7 +3011,7 @@
       this.cars.forEach((car, idx) => {
         const trailIndex = Math.min(this.historyTrail.length - 1, Math.floor((idx + 1) * spacing * 0.5));
         const pos = this.historyTrail[trailIndex] || { x: locoPos.x, y: locoPos.y, angle: locoAngle };
-        this.drawCar(pos.x, pos.y, pos.angle, car.type);
+        this.drawCar(pos.x, pos.y, pos.angle, car);
       });
 
       this.drawLocomotive(locoPos.x, locoPos.y, locoAngle);
@@ -2706,73 +3023,173 @@
       ctx.translate(x, y);
       ctx.rotate(angle);
 
-      const isGolden = rewards.state.selectedTrain === 'golden_express';
-      const bodyColor = isGolden ? '#F1C40F' : '#EA2027';
-      const cabColor = isGolden ? '#F39C12' : '#0652DD';
+      const skin = rewards.state.selectedTrain || this.locomotiveSkin || 'red_steam';
 
-      ctx.fillStyle = bodyColor;
-      ctx.beginPath();
-      ctx.roundRect(-16, -11, 26, 22, 5);
-      ctx.fill();
+      // Night Mode Headlight Beam projecting forward!
+      if (this.isNightMode) {
+        ctx.save();
+        const beamGrad = ctx.createRadialGradient(16, 0, 5, 80, 0, 90);
+        beamGrad.addColorStop(0, 'rgba(255, 234, 167, 0.75)');
+        beamGrad.addColorStop(0.5, 'rgba(255, 234, 167, 0.35)');
+        beamGrad.addColorStop(1, 'rgba(255, 234, 167, 0.0)');
+        ctx.fillStyle = beamGrad;
+        ctx.beginPath();
+        ctx.moveTo(14, -6);
+        ctx.lineTo(95, -36);
+        ctx.lineTo(95, 36);
+        ctx.lineTo(14, 6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      }
 
-      ctx.fillStyle = cabColor;
-      ctx.beginPath();
-      ctx.roundRect(-24, -13, 15, 26, 4);
-      ctx.fill();
-
-      ctx.fillStyle = '#E0F7FA';
-      ctx.fillRect(-22, -10, 11, 8);
-
-      ctx.fillStyle = '#2C3A47';
-      ctx.beginPath();
-      ctx.roundRect(4, -15, 6, 8, 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#FFEAA7';
-      ctx.beginPath();
-      ctx.arc(12, 0, 4, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#2C3A47';
-      ctx.beginPath();
-      ctx.arc(-16, -12, 4, 0, Math.PI * 2);
-      ctx.arc(0, -12, 4, 0, Math.PI * 2);
-      ctx.arc(-16, 12, 4, 0, Math.PI * 2);
-      ctx.arc(0, 12, 4, 0, Math.PI * 2);
-      ctx.fill();
+      if (skin === 'golden_express') {
+        // Golden Conductor Train
+        ctx.fillStyle = '#F1C40F';
+        ctx.beginPath(); ctx.roundRect(-16, -11, 26, 22, 5); ctx.fill();
+        ctx.fillStyle = '#F39C12';
+        ctx.beginPath(); ctx.roundRect(-24, -13, 15, 26, 4); ctx.fill();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(-22, -10, 11, 8);
+        ctx.font = '10px serif';
+        ctx.fillText('👑', -12, 4);
+        ctx.fillStyle = '#D68910';
+        ctx.beginPath(); ctx.roundRect(4, -15, 6, 8, 2); ctx.fill();
+        ctx.fillStyle = '#FFF200';
+        ctx.beginPath(); ctx.arc(12, 0, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#D68910';
+        [-16, 0].forEach(wx => {
+          ctx.beginPath(); ctx.arc(wx, -12, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(wx, 12, 4, 0, Math.PI * 2); ctx.fill();
+        });
+      } else if (skin === 'rainbow_rocket') {
+        // Rainbow Rocket Train
+        const colors = ['#FF4757', '#FFA502', '#2ED573', '#1E90FF', '#9B59B6'];
+        colors.forEach((col, i) => {
+          ctx.fillStyle = col;
+          ctx.fillRect(-24 + i * 7, -11, 8, 22);
+        });
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.moveTo(11, -11);
+        ctx.lineTo(22, 0);
+        ctx.lineTo(11, 11);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#00CEC9';
+        ctx.beginPath(); ctx.arc(-2, 0, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#FF7675';
+        ctx.beginPath();
+        ctx.moveTo(-24, -6);
+        ctx.lineTo(-32 - Math.random() * 4, 0);
+        ctx.lineTo(-24, 6);
+        ctx.closePath();
+        ctx.fill();
+      } else if (skin === 'bullet_train') {
+        // Silver Shinkansen Bullet Train
+        ctx.fillStyle = '#DFE4EA';
+        ctx.beginPath(); ctx.roundRect(-24, -11, 35, 22, 5); ctx.fill();
+        ctx.fillStyle = '#CED6E0';
+        ctx.beginPath();
+        ctx.moveTo(11, -11);
+        ctx.lineTo(25, 0);
+        ctx.lineTo(11, 11);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#2E86DE';
+        ctx.fillRect(-24, -2, 42, 4);
+        ctx.fillStyle = '#2C3A47';
+        ctx.beginPath(); ctx.roundRect(2, -8, 12, 5, 2); ctx.fill();
+        ctx.beginPath(); ctx.roundRect(2, 3, 12, 5, 2); ctx.fill();
+      } else if (skin === 'dino_express') {
+        // Safari Dino Train
+        ctx.fillStyle = '#20BF6B';
+        ctx.beginPath(); ctx.roundRect(-16, -11, 26, 22, 5); ctx.fill();
+        ctx.fillStyle = '#0B8457';
+        ctx.beginPath(); ctx.roundRect(-24, -13, 15, 26, 4); ctx.fill();
+        ctx.fillStyle = '#26DE81';
+        [-18, -10, -2, 6].forEach(sx => {
+          ctx.beginPath();
+          ctx.moveTo(sx - 3, -11);
+          ctx.lineTo(sx, -18);
+          ctx.lineTo(sx + 3, -11);
+          ctx.closePath();
+          ctx.fill();
+        });
+        ctx.fillStyle = '#FFF';
+        ctx.beginPath(); ctx.arc(-16, -5, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#000';
+        ctx.beginPath(); ctx.arc(-15, -5, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#FFEAA7';
+        ctx.beginPath(); ctx.arc(12, 0, 4, 0, Math.PI * 2); ctx.fill();
+      } else {
+        // Classic Red Little Steam Engine
+        ctx.fillStyle = '#EA2027';
+        ctx.beginPath(); ctx.roundRect(-16, -11, 26, 22, 5); ctx.fill();
+        ctx.fillStyle = '#0652DD';
+        ctx.beginPath(); ctx.roundRect(-24, -13, 15, 26, 4); ctx.fill();
+        ctx.fillStyle = '#E0F7FA';
+        ctx.fillRect(-22, -10, 11, 8);
+        ctx.fillStyle = '#2C3A47';
+        ctx.beginPath(); ctx.roundRect(4, -15, 6, 8, 2); ctx.fill();
+        ctx.fillStyle = '#FFEAA7';
+        ctx.beginPath(); ctx.arc(12, 0, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#2C3A47';
+        [-16, 0].forEach(wx => {
+          ctx.beginPath(); ctx.arc(wx, -12, 4, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.arc(wx, 12, 4, 0, Math.PI * 2); ctx.fill();
+        });
+      }
 
       ctx.restore();
     }
 
-    drawCar(x, y, angle, type) {
+    drawCar(x, y, angle, carOrType) {
       const ctx = this.ctx;
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate(angle);
+
+      const type = typeof carOrType === 'object' ? carOrType.type : carOrType;
+      const carObj = typeof carOrType === 'object' ? carOrType : null;
 
       if (type === 'tender') {
         ctx.fillStyle = '#2C3A47';
         ctx.beginPath();
         ctx.roundRect(-14, -10, 28, 20, 3);
         ctx.fill();
+        ctx.fillStyle = '#1A252F';
+        ctx.fillRect(-10, -7, 20, 14);
       } else if (type === 'passenger') {
         ctx.fillStyle = '#F39C12';
         ctx.beginPath();
         ctx.roundRect(-16, -11, 32, 22, 4);
         ctx.fill();
-        ctx.fillStyle = '#E0F7FA';
+        // Warm glowing windows in night mode, pale blue in day
+        ctx.fillStyle = this.isNightMode ? '#FFEAA7' : '#E0F7FA';
         ctx.fillRect(-12, -8, 7, 6);
         ctx.fillRect(-2, -8, 7, 6);
         ctx.fillRect(8, -8, 7, 6);
       } else {
-        ctx.fillStyle = '#27AE60';
+        // Animal Passenger Carriage
+        ctx.fillStyle = '#D35400';
         ctx.beginPath();
         ctx.roundRect(-16, -11, 32, 22, 4);
         ctx.fill();
-        ctx.fillStyle = '#F1C40F';
-        ctx.beginPath();
-        ctx.arc(0, -12, 6, 0, Math.PI * 2);
-        ctx.fill();
+
+        // Wooden slats
+        ctx.strokeStyle = '#BA4A00';
+        ctx.lineWidth = 1.5;
+        [-10, 0, 10].forEach(lx => {
+          ctx.beginPath(); ctx.moveTo(lx, -11); ctx.lineTo(lx, 11); ctx.stroke();
+        });
+
+        // Animal passenger emoji peeking out!
+        const animalEmoji = (carObj && carObj.animal) || this.animalPassengers[this.currentAnimalIdx] || '🐮';
+        ctx.font = '15px serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(animalEmoji, 0, 0);
       }
 
       ctx.fillStyle = '#333333';
@@ -2869,6 +3286,32 @@
         this.render();
         sound.speak(spokenText);
         return;
+      } else if (this.mode === 'compare') {
+        type = 'compare';
+        num1 = Math.floor(Math.random() * 4) + 2;
+        let candidate = Math.floor(Math.random() * 4) + 2;
+        while (candidate === num1) {
+          candidate = Math.floor(Math.random() * 4) + 2;
+        }
+        num2 = candidate;
+        answer = num1 > num2 ? 'A' : 'B';
+
+        const CARGO_ICONS = ['🍎', '⭐', '📦', '🎈', '⚙️', '🎁'];
+        const icon1 = CARGO_ICONS[Math.floor(Math.random() * CARGO_ICONS.length)];
+        let icon2 = CARGO_ICONS[Math.floor(Math.random() * CARGO_ICONS.length)];
+        while (icon2 === icon1) {
+          icon2 = CARGO_ICONS[Math.floor(Math.random() * CARGO_ICONS.length)];
+        }
+
+        questionText = 'Which Train is Longer? 🚂';
+        spokenText = 'Which train is longer? Tap the train with more cargo wagons!';
+
+        this.currentProblem = {
+          type, num1, num2, answer, icon1, icon2, questionText, spokenText
+        };
+        this.render();
+        sound.speak(spokenText);
+        return;
       }
 
       cargoItems1 = Array(num1).fill(icon);
@@ -2907,6 +3350,7 @@
             <button class="math-mode-btn" data-mode="add_10">🌟 Sums to 10</button>
             <button class="math-mode-btn" data-mode="sub_5">➖ Take Away</button>
             <button class="math-mode-btn" data-mode="missing">🔢 Missing Car</button>
+            <button class="math-mode-btn" data-mode="compare">⚖️ Long or Short?</button>
           </div>
 
           <div class="math-stage">
@@ -2951,6 +3395,58 @@
 
       const trainVisualEl = this.container.querySelector('#math-train-visual');
       const p = this.currentProblem;
+      const ansLabel = this.container.querySelector('.math-answers-label');
+      const optionsGrid = this.container.querySelector('#math-options-grid');
+
+      if (p.type === 'compare') {
+        if (ansLabel) ansLabel.innerText = 'Tap the longer train with MORE cargo:';
+        if (optionsGrid) optionsGrid.innerHTML = '';
+
+        trainVisualEl.innerHTML = `
+          <div class="math-compare-container">
+            <div class="compare-train-card ${this.answered && p.answer === 'A' ? 'selected-correct' : ''}" data-train="A">
+              <div class="compare-train-header">
+                <span class="compare-train-badge">🔴 Train Red</span>
+                <span class="compare-train-count">${p.num1} Cargo Wagons</span>
+              </div>
+              <div class="compare-train-row">
+                <span class="compare-loco">🚂</span>
+                ${Array(p.num1).fill(0).map(() => `
+                  <div class="compare-car">
+                    <span class="compare-car-icon">${p.icon1}</span>
+                    <span class="compare-car-wheels">● ●</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <div class="compare-train-card ${this.answered && p.answer === 'B' ? 'selected-correct' : ''}" data-train="B">
+              <div class="compare-train-header">
+                <span class="compare-train-badge">🔵 Train Blue</span>
+                <span class="compare-train-count">${p.num2} Cargo Wagons</span>
+              </div>
+              <div class="compare-train-row">
+                <span class="compare-loco">🚆</span>
+                ${Array(p.num2).fill(0).map(() => `
+                  <div class="compare-car">
+                    <span class="compare-car-icon">${p.icon2}</span>
+                    <span class="compare-car-wheels">● ●</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+
+        trainVisualEl.querySelectorAll('.compare-train-card').forEach(card => {
+          card.addEventListener('click', () => {
+            this.handleCompareAnswer(card.dataset.train, card);
+          });
+        });
+        return;
+      }
+
+      if (ansLabel) ansLabel.innerText = 'Tap the winning train car:';
 
       if (p.type === 'addition') {
         trainVisualEl.innerHTML = `
@@ -3035,7 +3531,6 @@
         });
       });
 
-      const optionsGrid = this.container.querySelector('#math-options-grid');
       optionsGrid.innerHTML = '';
 
       p.options.forEach(val => {
@@ -3049,6 +3544,32 @@
         btn.addEventListener('click', () => this.handleAnswer(val, btn));
         optionsGrid.appendChild(btn);
       });
+    }
+
+    handleCompareAnswer(trainId, cardElement) {
+      if (this.answered) return;
+      sound.init();
+
+      if (trainId === this.currentProblem.answer) {
+        this.answered = true;
+        this.streak++;
+        cardElement.classList.add('selected-correct');
+        sound.playStrokeComplete();
+        sound.playWhistle();
+
+        const winningCount = Math.max(this.currentProblem.num1, this.currentProblem.num2);
+        sound.speak(`Awesome! Train ${trainId === 'A' ? 'Red' : 'Blue'} has ${winningCount} cargo wagons! Winner!`);
+        rewards.awardTracingReward({ symbol: 'Train Math', rewardTracks: 2 });
+
+        setTimeout(() => {
+          this.generateProblem();
+        }, 1400);
+      } else {
+        cardElement.classList.add('shake');
+        sound.playGentleNudge();
+        sound.speak('Count the cars! Try the other train!');
+        setTimeout(() => cardElement.classList.remove('shake'), 450);
+      }
     }
 
     handleAnswer(val, btnElement) {
@@ -3228,6 +3749,48 @@
         });
       });
 
+      // Speed Pill Buttons
+      const speedBtns = [
+        document.getElementById('btn-speed-slow'),
+        document.getElementById('btn-speed-normal'),
+        document.getElementById('btn-speed-fast')
+      ].filter(Boolean);
+
+      speedBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          speedBtns.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          const speedVal = parseFloat(btn.dataset.speed || '2.2');
+          this.trainWorld.trainSpeed = speedVal;
+          sound.playTap();
+        });
+      });
+
+      // Day / Night Environment Toggle
+      const btnNight = document.getElementById('btn-toggle-night');
+      const sandboxContainer = document.querySelector('.train-sandbox-container');
+      if (btnNight) {
+        btnNight.addEventListener('click', () => {
+          const isNight = this.trainWorld.toggleNight();
+          btnNight.classList.toggle('night-active', isNight);
+          if (sandboxContainer) sandboxContainer.classList.toggle('night-mode', isNight);
+          const envIcon = document.getElementById('env-icon');
+          const envText = document.getElementById('env-text');
+          if (envIcon) envIcon.innerText = isNight ? '☀️' : '🌙';
+          if (envText) envText.innerText = isNight ? 'Day Run' : 'Night Run';
+          if (isNight) sound.playNightHoot?.(); else sound.playWhistle();
+        });
+      }
+
+      // Animal Friends Caller Button
+      const btnAddAnimal = document.getElementById('btn-add-animal');
+      if (btnAddAnimal) {
+        btnAddAnimal.addEventListener('click', () => {
+          const animal = this.trainWorld.cycleAnimalPassenger();
+          sound.playAnimalSound?.(animal);
+        });
+      }
+
       const btnMute = document.getElementById('btn-toggle-sound');
       btnMute.addEventListener('click', () => {
         const on = sound.toggleSound();
@@ -3319,7 +3882,15 @@
         const activeClass = key === this.currentItemKey ? 'active' : '';
         const wordClass = isWordsMode ? 'word-item-btn' : '';
         btn.className = `ribbon-item-btn ${wordClass} ${activeClass}`.trim();
-        btn.innerText = key;
+
+        const isMastered = isWordsMode
+          ? ((rewards.state.completedWords?.[key] || 0) > 0)
+          : this.currentCategory === 'numbers'
+            ? ((rewards.state.completedNumbers?.[key] || 0) > 0)
+            : ((rewards.state.completedLetters?.[key] || 0) > 0);
+
+        btn.innerHTML = `${key}${isMastered ? ' <span class="ribbon-star-badge">⭐</span>' : ''}`;
+
         btn.addEventListener('click', () => {
           sound.playTap();
           this.currentItemKey = key;
@@ -3359,6 +3930,29 @@
       if (!item) return;
 
       this.renderItemSelectorRibbon();
+
+      // Update Category Mastery Tracker Pill
+      const masteryPill = document.getElementById('category-mastery-pill');
+      if (masteryPill) {
+        let items = {};
+        if (this.currentCategory === 'letters') items = LETTERS;
+        else if (this.currentCategory === 'lowercase') items = LOWERCASE_LETTERS;
+        else if (this.currentCategory === 'numbers') items = NUMBERS;
+        else if (this.currentCategory === 'words') items = WORDS;
+
+        const isWordsMode = this.currentCategory === 'words';
+        let masteredCount = 0;
+        const totalCount = Object.keys(items).length;
+        Object.keys(items).forEach(k => {
+          const isM = isWordsMode
+            ? ((rewards.state.completedWords?.[k] || 0) > 0)
+            : this.currentCategory === 'numbers'
+              ? ((rewards.state.completedNumbers?.[k] || 0) > 0)
+              : ((rewards.state.completedLetters?.[k] || 0) > 0);
+          if (isM) masteredCount++;
+        });
+        masteryPill.innerText = `⭐ ${masteredCount}/${totalCount} Mastered`;
+      }
 
       if (this.currentCategory === 'words') {
         const wordObj = WORDS[this.currentItemKey];
@@ -3458,16 +4052,20 @@
       if (this.starCountEl) this.starCountEl.innerText = state.stars;
       if (this.ticketCountEl) this.ticketCountEl.innerText = state.tickets;
 
-      const totalTracks = (state.inventory.straight || 0) + (state.inventory.curve || 0);
+      const totalTracks = (state.inventory.straight || 0) + (state.inventory.curve || 0) + (state.inventory.bridge || 0);
       if (this.trackCountEl) this.trackCountEl.innerText = totalTracks;
 
       const badgeStraight = document.getElementById('badge-straight-count');
       const badgeCurve = document.getElementById('badge-curve-count');
+      const badgeBridge = document.getElementById('badge-bridge-count');
+      const badgeFarm = document.getElementById('badge-farm-count');
       const badgeStation = document.getElementById('badge-station-count');
       const badgeTree = document.getElementById('badge-tree-count');
 
       if (badgeStraight) badgeStraight.innerText = state.inventory.straight || 0;
       if (badgeCurve) badgeCurve.innerText = state.inventory.curve || 0;
+      if (badgeBridge) badgeBridge.innerText = state.inventory.bridge || 0;
+      if (badgeFarm) badgeFarm.innerText = state.inventory.farm || 0;
       if (badgeStation) badgeStation.innerText = state.inventory.station || 0;
       if (badgeTree) badgeTree.innerText = state.inventory.tree || 0;
     }
@@ -3495,23 +4093,63 @@
         });
       }
 
-      trainSelectEl.innerHTML = `
-        <div class="train-card ${state.selectedTrain === 'red_steam' ? 'selected' : ''}" data-train="red_steam">
-          <div class="train-preview-icon">🚂</div>
-          <h4>Red Little Steam Engine</h4>
-          <span class="status-tag">Default</span>
+      const trainConfigs = [
+        {
+          id: 'red_steam',
+          name: 'Red Steam Engine',
+          icon: '🚂',
+          desc: 'Classic crimson locomotive with chugging steam',
+          unlocked: true,
+          hint: 'Default Engine'
+        },
+        {
+          id: 'golden_express',
+          name: 'Golden Conductor Express',
+          icon: '✨🚂✨',
+          desc: "Antoni's official golden engine with crown badge",
+          unlocked: state.unlockedTrains.includes('golden_express') || (state.completedLetters?.['A'] || 0) > 0 || (state.completedWords?.['Antoni'] || 0) > 0,
+          hint: 'Trace Letter A or Antoni'
+        },
+        {
+          id: 'rainbow_rocket',
+          name: 'Rainbow Rocket Train',
+          icon: '🚀🌈',
+          desc: 'Aerodynamic rocket nose with rainbow jet trail',
+          unlocked: state.unlockedTrains.includes('rainbow_rocket') || state.stars >= 10,
+          hint: 'Earn 10 Stars ⭐'
+        },
+        {
+          id: 'bullet_train',
+          name: 'Silver Bullet Shinkansen',
+          icon: '⚡🚅',
+          desc: 'Super high-speed streamlined silver bullet express',
+          unlocked: state.unlockedTrains.includes('bullet_train') || state.stars >= 20,
+          hint: 'Earn 20 Stars ⭐'
+        },
+        {
+          id: 'dino_express',
+          name: 'Dino Safari Explorer',
+          icon: '🦕🚂',
+          desc: 'Emerald green safari train with friendly dinosaur crest',
+          unlocked: state.unlockedTrains.includes('dino_express') || state.stars >= 35,
+          hint: 'Earn 35 Stars ⭐'
+        }
+      ];
+
+      trainSelectEl.innerHTML = trainConfigs.map(t => `
+        <div class="train-card ${state.selectedTrain === t.id ? 'selected' : ''} ${!t.unlocked ? 'locked' : ''}" data-train="${t.id}">
+          <div class="train-preview-icon" style="font-size: 2.2rem; margin-bottom: 6px;">${t.icon}</div>
+          <h4 style="margin-bottom: 4px;">${t.name}</h4>
+          <p style="font-size: 0.8rem; color: #718096; text-align: center; margin: 0 0 10px;">${t.desc}</p>
+          <span class="status-tag">${t.unlocked ? (state.selectedTrain === t.id ? 'Active Driver' : 'Select Train') : t.hint}</span>
         </div>
-        <div class="train-card ${state.selectedTrain === 'golden_express' ? 'selected' : !state.unlockedTrains.includes('golden_express') ? 'locked' : ''}" data-train="golden_express">
-          <div class="train-preview-icon">✨🚂✨</div>
-          <h4>Golden Conductor Express</h4>
-          <span class="status-tag">${state.unlockedTrains.includes('golden_express') ? 'Unlocked!' : 'Trace Letter A or Antoni to Unlock'}</span>
-        </div>
-      `;
+      `).join('');
 
       trainSelectEl.querySelectorAll('.train-card:not(.locked)').forEach(card => {
         card.addEventListener('click', () => {
           sound.playTap();
           rewards.selectTrain(card.dataset.train);
+          this.trainWorld.setLocomotiveSkin(card.dataset.train);
           this.renderRewardsScreen();
         });
       });

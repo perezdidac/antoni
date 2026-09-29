@@ -90,7 +90,10 @@
           <!-- Active Prompt Banner -->
           <div class="prompt-banner">
             <div class="prompt-text-group">
-              <h2 id="active-letter-title" class="active-letter-badge">A</h2>
+              <div class="prompt-title-row">
+                <h2 id="active-letter-title" class="active-letter-badge">A</h2>
+                <div id="category-mastery-pill" class="mastery-tracker-pill">⭐ 0 Mastered</div>
+              </div>
               <p id="active-letter-phonic" class="active-phonic-text">A is for Antoni and All Aboard!</p>
             </div>
             <button id="btn-speak-phonic" class="btn-speak" title="Hear Letter Sound">
@@ -159,6 +162,24 @@
           </div>
         </div>
 
+        <!-- Train Secondary Controls Bar (Speed, Day/Night, Animal Friends) -->
+        <div class="train-secondary-bar">
+          <div class="speed-toggle-group">
+            <span class="bar-label">Speed:</span>
+            <button id="btn-speed-slow" class="speed-pill-btn" data-speed="1.2">🐢 Chug</button>
+            <button id="btn-speed-normal" class="speed-pill-btn active" data-speed="2.2">🚂 Cruise</button>
+            <button id="btn-speed-fast" class="speed-pill-btn" data-speed="3.6">⚡ Turbo</button>
+          </div>
+          <div class="env-toggle-group">
+            <button id="btn-toggle-night" class="env-pill-btn" title="Toggle Day / Night">
+              <span id="env-icon">🌙</span> <span id="env-text">Night Run</span>
+            </button>
+            <button id="btn-add-animal" class="env-pill-btn" title="Call Animal Passengers">
+              <span>🐾</span> Animal Friends
+            </button>
+          </div>
+        </div>
+
         <!-- Train Sandbox Canvas Area -->
         <div class="train-sandbox-container">
           <!-- Interactive Whistle Pull Cord hanging on side -->
@@ -190,10 +211,22 @@
               <span class="tool-badge" id="badge-curve-count">12</span>
             </button>
 
+            <button class="train-tool-btn" data-tool="bridge">
+              <span class="tool-icon">🌉</span>
+              <span class="tool-name">Bridge</span>
+              <span class="tool-badge" id="badge-bridge-count">4</span>
+            </button>
+
             <button class="train-tool-btn" data-tool="station">
               <span class="tool-icon">🚉</span>
               <span class="tool-name">Station</span>
               <span class="tool-badge" id="badge-station-count">2</span>
+            </button>
+
+            <button class="train-tool-btn" data-tool="farm">
+              <span class="tool-icon">🐮</span>
+              <span class="tool-name">Farm</span>
+              <span class="tool-badge" id="badge-farm-count">2</span>
             </button>
 
             <button class="train-tool-btn" data-tool="tree">

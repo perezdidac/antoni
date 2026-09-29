@@ -158,6 +158,48 @@ class App {
       });
     });
 
+    // Speed Pill Buttons
+    const speedBtns = [
+      document.getElementById('btn-speed-slow'),
+      document.getElementById('btn-speed-normal'),
+      document.getElementById('btn-speed-fast')
+    ].filter(Boolean);
+
+    speedBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        speedBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const speedVal = parseFloat(btn.dataset.speed || '2.2');
+        this.trainWorld.trainSpeed = speedVal;
+        sound.playTap();
+      });
+    });
+
+    // Day / Night Environment Toggle
+    const btnNight = document.getElementById('btn-toggle-night');
+    const sandboxContainer = document.querySelector('.train-sandbox-container');
+    if (btnNight) {
+      btnNight.addEventListener('click', () => {
+        const isNight = this.trainWorld.toggleNight();
+        btnNight.classList.toggle('night-active', isNight);
+        if (sandboxContainer) sandboxContainer.classList.toggle('night-mode', isNight);
+        const envIcon = document.getElementById('env-icon');
+        const envText = document.getElementById('env-text');
+        if (envIcon) envIcon.innerText = isNight ? '☀️' : '🌙';
+        if (envText) envText.innerText = isNight ? 'Day Run' : 'Night Run';
+        if (isNight) sound.playNightHoot?.(); else sound.playWhistle();
+      });
+    }
+
+    // Animal Friends Caller Button
+    const btnAddAnimal = document.getElementById('btn-add-animal');
+    if (btnAddAnimal) {
+      btnAddAnimal.addEventListener('click', () => {
+        const animal = this.trainWorld.cycleAnimalPassenger();
+        sound.playAnimalSound?.(animal);
+      });
+    }
+
     // Audio & Voice Toggles
     const btnMute = document.getElementById('btn-toggle-sound');
     btnMute.addEventListener('click', () => {
@@ -255,7 +297,15 @@ class App {
       const activeClass = key === this.currentItemKey ? 'active' : '';
       const wordClass = isWordsMode ? 'word-item-btn' : '';
       btn.className = `ribbon-item-btn ${wordClass} ${activeClass}`.trim();
-      btn.innerText = key;
+
+      const isMastered = isWordsMode
+        ? ((rewards.state.completedWords?.[key] || 0) > 0)
+        : this.currentCategory === 'numbers'
+          ? ((rewards.state.completedNumbers?.[key] || 0) > 0)
+          : ((rewards.state.completedLetters?.[key] || 0) > 0);
+
+      btn.innerHTML = `${key}${isMastered ? ' <span class="ribbon-star-badge">⭐</span>' : ''}`;
+
       btn.addEventListener('click', () => {
         sound.playTap();
         this.currentItemKey = key;
@@ -296,6 +346,29 @@ class App {
     if (!item) return;
 
     this.renderItemSelectorRibbon();
+
+    // Update Category Mastery Tracker Pill
+    const masteryPill = document.getElementById('category-mastery-pill');
+    if (masteryPill) {
+      let items = {};
+      if (this.currentCategory === 'letters') items = LETTERS;
+      else if (this.currentCategory === 'lowercase') items = LOWERCASE_LETTERS;
+      else if (this.currentCategory === 'numbers') items = NUMBERS;
+      else if (this.currentCategory === 'words') items = WORDS;
+
+      const isWordsMode = this.currentCategory === 'words';
+      let masteredCount = 0;
+      const totalCount = Object.keys(items).length;
+      Object.keys(items).forEach(k => {
+        const isM = isWordsMode
+          ? ((rewards.state.completedWords?.[k] || 0) > 0)
+          : this.currentCategory === 'numbers'
+            ? ((rewards.state.completedNumbers?.[k] || 0) > 0)
+            : ((rewards.state.completedLetters?.[k] || 0) > 0);
+        if (isM) masteredCount++;
+      });
+      masteryPill.innerText = `⭐ ${masteredCount}/${totalCount} Mastered`;
+    }
 
     if (this.currentCategory === 'words') {
       const wordObj = WORDS[this.currentItemKey];
@@ -395,17 +468,21 @@ class App {
     if (this.starCountEl) this.starCountEl.innerText = state.stars;
     if (this.ticketCountEl) this.ticketCountEl.innerText = state.tickets;
 
-    const totalTracks = (state.inventory.straight || 0) + (state.inventory.curve || 0);
+    const totalTracks = (state.inventory.straight || 0) + (state.inventory.curve || 0) + (state.inventory.bridge || 0);
     if (this.trackCountEl) this.trackCountEl.innerText = totalTracks;
 
     // Update tool badges in Train World
     const badgeStraight = document.getElementById('badge-straight-count');
     const badgeCurve = document.getElementById('badge-curve-count');
+    const badgeBridge = document.getElementById('badge-bridge-count');
+    const badgeFarm = document.getElementById('badge-farm-count');
     const badgeStation = document.getElementById('badge-station-count');
     const badgeTree = document.getElementById('badge-tree-count');
 
     if (badgeStraight) badgeStraight.innerText = state.inventory.straight || 0;
     if (badgeCurve) badgeCurve.innerText = state.inventory.curve || 0;
+    if (badgeBridge) badgeBridge.innerText = state.inventory.bridge || 0;
+    if (badgeFarm) badgeFarm.innerText = state.inventory.farm || 0;
     if (badgeStation) badgeStation.innerText = state.inventory.station || 0;
     if (badgeTree) badgeTree.innerText = state.inventory.tree || 0;
   }
@@ -417,10 +494,10 @@ class App {
 
     // Render completed badges
     listEl.innerHTML = '';
-    const allCompleted = { ...state.completedLetters, ...state.completedNumbers, ...state.completedWords };
+    const allCompleted = { ...(state.completedLetters || {}), ...(state.completedNumbers || {}), ...(state.completedWords || {}) };
 
     if (Object.keys(allCompleted).length === 0) {
-      listEl.innerHTML = `<p class="empty-hint">Trace your first letter to earn golden badges and train tracks! ⭐</p>`;
+      listEl.innerHTML = `<p class="empty-hint" style="grid-column: 1/-1; text-align: center; color: #718096; font-weight: 700; padding: 20px;">Trace letters, numbers, or words to earn golden badges and train tracks! ⭐</p>`;
     } else {
       Object.entries(allCompleted).forEach(([sym, count]) => {
         const badge = document.createElement('div');
@@ -434,24 +511,64 @@ class App {
       });
     }
 
-    // Render locomotive selection
-    trainSelectEl.innerHTML = `
-      <div class="train-card ${state.selectedTrain === 'red_steam' ? 'selected' : ''}" data-train="red_steam">
-        <div class="train-preview-icon">🚂</div>
-        <h4>Red Little Steam Engine</h4>
-        <span class="status-tag">Default</span>
+    // Render locomotive selection with all 5 unlockable skins
+    const trainConfigs = [
+      {
+        id: 'red_steam',
+        name: 'Red Steam Engine',
+        icon: '🚂',
+        desc: 'Classic crimson locomotive with chugging steam',
+        unlocked: true,
+        hint: 'Default Engine'
+      },
+      {
+        id: 'golden_express',
+        name: 'Golden Conductor Express',
+        icon: '✨🚂✨',
+        desc: "Antoni's official golden engine with crown badge",
+        unlocked: state.unlockedTrains.includes('golden_express') || (state.completedLetters?.['A'] || 0) > 0 || (state.completedWords?.['Antoni'] || 0) > 0,
+        hint: 'Trace Letter A or Antoni'
+      },
+      {
+        id: 'rainbow_rocket',
+        name: 'Rainbow Rocket Train',
+        icon: '🚀🌈',
+        desc: 'Aerodynamic rocket nose with rainbow jet trail',
+        unlocked: state.unlockedTrains.includes('rainbow_rocket') || state.stars >= 10,
+        hint: 'Earn 10 Stars ⭐'
+      },
+      {
+        id: 'bullet_train',
+        name: 'Silver Bullet Shinkansen',
+        icon: '⚡🚅',
+        desc: 'Super high-speed streamlined silver bullet express',
+        unlocked: state.unlockedTrains.includes('bullet_train') || state.stars >= 20,
+        hint: 'Earn 20 Stars ⭐'
+      },
+      {
+        id: 'dino_express',
+        name: 'Dino Safari Explorer',
+        icon: '🦕🚂',
+        desc: 'Emerald green safari train with friendly dinosaur crest',
+        unlocked: state.unlockedTrains.includes('dino_express') || state.stars >= 35,
+        hint: 'Earn 35 Stars ⭐'
+      }
+    ];
+
+    trainSelectEl.innerHTML = trainConfigs.map(t => `
+      <div class="train-card ${state.selectedTrain === t.id ? 'selected' : ''} ${!t.unlocked ? 'locked' : ''}" data-train="${t.id}">
+        <div class="train-preview-icon" style="font-size: 2.2rem; margin-bottom: 6px;">${t.icon}</div>
+        <h4 style="margin-bottom: 4px;">${t.name}</h4>
+        <p style="font-size: 0.8rem; color: #718096; text-align: center; margin: 0 0 10px;">${t.desc}</p>
+        <span class="status-tag">${t.unlocked ? (state.selectedTrain === t.id ? 'Active Driver' : 'Select Train') : t.hint}</span>
       </div>
-      <div class="train-card ${state.selectedTrain === 'golden_express' ? 'selected' : !state.unlockedTrains.includes('golden_express') ? 'locked' : ''}" data-train="golden_express">
-        <div class="train-preview-icon">✨🚂✨</div>
-        <h4>Golden Conductor Express</h4>
-        <span class="status-tag">${state.unlockedTrains.includes('golden_express') ? 'Unlocked!' : 'Trace Letter A or Antoni to Unlock'}</span>
-      </div>
-    `;
+    `).join('');
 
     trainSelectEl.querySelectorAll('.train-card:not(.locked)').forEach(card => {
       card.addEventListener('click', () => {
         sound.playTap();
         rewards.selectTrain(card.dataset.train);
+        this.trainWorld.setLocomotiveSkin(card.dataset.train);
         this.renderRewardsScreen();
       });
     });

@@ -292,6 +292,60 @@ class SoundEngine {
     osc.stop(now + 0.06);
   }
 
+  playAnimalSound(animal) {
+    if (!this.soundEnabled) return;
+    this.init();
+    if (animal === '🐮') {
+      if (this.ctx) {
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(145, now);
+        osc.frequency.linearRampToValueAtTime(110, now + 0.45);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.48);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.5);
+      }
+      this.speak('Moo! The happy cow is on board!');
+    } else if (animal === '🐶') {
+      this.speak('Woof woof! Puppy is ready for the railway adventure!');
+    } else if (animal === '🦁') {
+      this.speak('Roar! Lion engineer is on duty!');
+    } else if (animal === '🐑') {
+      this.speak('Baa! The sheep loves the train ride!');
+    } else if (animal === '🦒') {
+      this.speak('The tall giraffe can see the whole railway!');
+    } else if (animal === '🐷') {
+      this.speak('Oink oink! Piggy is enjoying the ride!');
+    } else {
+      this.playBell();
+    }
+  }
+
+  playNightHoot() {
+    if (!this.soundEnabled) return;
+    this.init();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    [440, 392].forEach((freq, i) => {
+      const t = now + i * 0.28;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+      gain.gain.setValueAtTime(0.08, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.24);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.26);
+    });
+  }
+
   // Text-To-Speech with standard, clear voice
   speak(text) {
     if (!this.voiceEnabled || !this.speechSynth) return;
